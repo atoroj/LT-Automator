@@ -17,7 +17,7 @@ from ..config import Config
 from ..db import conectar, inicializar
 from ..documentos.texto import MotorOCR
 from ..extraccion.servicio import obtener_proveedor
-from ..gmail.conector import AutorizacionEnCurso
+from ..gmail.conector import AutorizacionGmail
 from ..carpeta_entrada import VigilanteEntrada
 from ..gmail.sincronizador import Sincronizador
 
@@ -28,7 +28,8 @@ METODOS_SEGUROS = {"GET", "HEAD", "OPTIONS"}
 class ProteccionLocal(BaseHTTPMiddleware):
     """Defensa frente a DNS rebinding y peticiones entre sitios (CSRF).
 
-    - Solo se aceptan peticiones con Host de loopback.
+    - Solo se aceptan peticiones con Host de loopback o de `[servidor] hosts_permitidos`
+      (p. ej. el nombre de Tailscale cuando la aplicación está en el servidor).
     - Las peticiones que modifican datos deben venir de la propia aplicación (Origin/Referer).
     """
 
@@ -43,7 +44,7 @@ class ProteccionLocal(BaseHTTPMiddleware):
         if request.method not in METODOS_SEGUROS:
             origen = request.headers.get("origin") or request.headers.get("referer") or ""
             p = urlsplit(origen)
-            if not origen or p.netloc not in self.hosts or p.scheme != "http":
+            if not origen or p.netloc not in self.hosts or p.scheme not in ("http", "https"):
                 return PlainTextResponse("Petición rechazada: origen no permitido", status_code=403)
         resp = await call_next(request)
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
@@ -89,7 +90,8 @@ def crear_app(cfg: Config, hosts_extra: tuple[str, ...] = (), iniciar_sync: bool
 
     app = FastAPI(title="Gestión de expedientes hipotecarios", lifespan=ciclo, docs_url=None, redoc_url=None, openapi_url=None)
     puerto = cfg["servidor"]["puerto"]
-    hosts = {f"127.0.0.1:{puerto}", f"localhost:{puerto}", *hosts_extra}
+    hosts = {f"127.0.0.1:{puerto}", f"localhost:{puerto}", *hosts_extra,
+             *(str(h).strip().lower() for h in cfg["servidor"].get("hosts_permitidos", []) if str(h).strip())}
     app.add_middleware(ProteccionLocal, hosts=hosts)
     app.mount("/static", StaticFiles(directory=DIR / "static"), name="static")
 
@@ -102,7 +104,7 @@ def crear_app(cfg: Config, hosts_extra: tuple[str, ...] = (), iniciar_sync: bool
     app.state.ocr = ocr
     app.state.sync = sync
     app.state.entrada = entrada
-    app.state.oauth = AutorizacionEnCurso()
+    app.state.oauth = AutorizacionGmail()
     app.state.plantillas = plantillas
     app.state.proveedor = lambda: obtener_proveedor(cfg)
 

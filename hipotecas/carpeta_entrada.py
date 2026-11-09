@@ -25,6 +25,7 @@ from pathlib import Path
 from . import almacenamiento as alm
 from .actividad import registrar
 from .config import Config
+from .copias import copia_diaria_bd
 from .db import ahora, conectar, todos
 from .documentos.texto import MotorOCR
 from .extraccion.base import ProveedorExtraccion
@@ -178,6 +179,7 @@ class VigilanteEntrada:
         conn = None
         try:
             conn = conectar(self.cfg.ruta_db)
+            copia_diaria_bd(self.cfg)  # como mucho una vez al día
             proveedor, _ = self.proveedor_fn()
             cont = escanear(conn, self.cfg, proveedor, self.ocr)
             self.estado.contadores, self.estado.ultimo_error = cont, ""

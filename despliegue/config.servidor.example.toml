@@ -1,0 +1,42 @@
+# Configuración para el servidor (Docker). Se copia a servidor/config.toml.
+# Solo incluye lo que cambia respecto a los valores por defecto (ver config.example.toml para el resto).
+
+[servidor]
+puerto = 8765
+abrir_navegador = false
+# Nombre con el que entras desde el móvil y el PC a través de Tailscale.
+# Lo muestra «sudo tailscale serve status», p. ej. "mi-servidor.tail1234.ts.net". Sin https:// ni barra final.
+hosts_permitidos = ["CAMBIAR.ts.net"]
+
+[rutas]
+datos = "/datos"
+
+[ocr]
+# Tesseract viene instalado en la imagen.
+tesseract_cmd = ""
+idioma = "spa"
+
+[gmail]
+habilitado = true
+etiqueta = "Hipotecas/Procesar"
+intervalo_minutos = 5
+incluir_remitentes_de_expedientes = true
+dias_remitentes = 30
+consulta = ""
+
+[ia]
+proveedor = "anthropic"
+permitir_envio_externo = true
+modelo = "claude-opus-5-5"
+esfuerzo = "medium"
+
+[carpetas]
+raiz = "GESTOR HIPOTECARIO"
+entrada = "00 - ENTRADA"
+expedientes = "02 - EXPEDIENTES"
+incidencias = "03 - INCIDENCIAS"
+intervalo_segundos = 15
+segundos_estabilidad = 5
+
+[copias]
+dias_conservar = 30

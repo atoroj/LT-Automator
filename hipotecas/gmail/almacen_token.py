@@ -1,8 +1,8 @@
 """Almacenamiento seguro del token OAuth.
 
 En Windows se cifra con DPAPI (CryptProtectData) ligado a la cuenta de usuario de Windows:
-solo esa usuaria, en ese equipo, puede descifrarlo. En otros sistemas (solo desarrollo/pruebas)
-se guarda con permisos 600.
+solo esa usuaria, en ese equipo, puede descifrarlo. En Linux (servidor/Docker) se guarda con
+permisos 600 dentro del volumen de datos, que solo es accesible para el usuario del contenedor.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ else:  # pragma: no cover - solo para desarrollo fuera de Windows
     def descifrar(datos: bytes) -> bytes:
         return datos
 
-    PROTECCION = "archivo con permisos 600 (sin cifrar: solo desarrollo)"
+    PROTECCION = "archivo con permisos 600 en el volumen de datos del servidor"
 
 
 class AlmacenToken:

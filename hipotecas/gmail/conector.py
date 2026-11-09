@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -59,42 +58,92 @@ def cargar_credenciales(cfg: Config):
     return creds
 
 
-class AutorizacionEnCurso:
-    """Ejecuta el flujo OAuth de aplicación instalada en segundo plano (abre el navegador)."""
+class AutorizacionGmail:
+    """Autorización OAuth de Gmail que funciona igual en el PC y en un servidor sin navegador.
+
+    1. `iniciar()` devuelve el enlace de Google; la usuaria lo abre en su navegador y acepta.
+    2. Google redirige a http://127.0.0.1:<puerto>/?code=...
+       - En el PC esa dirección es la propia aplicación y se completa sola.
+       - En el servidor esa página no carga en tu dispositivo: copias la dirección de la barra del
+         navegador y la pegas en la pantalla «Entrada» (`completar()`).
+    Cambiar de cuenta de Google = desconectar y volver a autorizar con la otra cuenta.
+    """
 
     def __init__(self):
-        self.hilo: threading.Thread | None = None
-        self.estado = "inactivo"
+        self.flujo = None
+        self.url = ""
+        self.estado_oauth = ""
         self.error = ""
 
-    def iniciar(self, cfg: Config) -> None:
-        if self.hilo and self.hilo.is_alive():
-            return
+    def iniciar(self, cfg: Config) -> str:
+        from google_auth_oauthlib.flow import Flow
+
         cred = ruta_credenciales(cfg)
         if not cred.exists():
-            raise GmailNoConfigurado(f"No se encuentra {cred}. Sigue los pasos del README para crearlo.")
+            raise GmailNoConfigurado("Primero sube el archivo de credenciales OAuth (credentials.json) de Google Cloud.")
+        redireccion = f"http://127.0.0.1:{cfg['servidor']['puerto']}/"
+        self.flujo = Flow.from_client_secrets_file(str(cred), SCOPES, redirect_uri=redireccion)
+        self.url, self.estado_oauth = self.flujo.authorization_url(
+            access_type="offline", prompt="consent", include_granted_scopes="false"
+        )
+        self.error = ""
+        return self.url
 
-        def trabajo():
-            from google_auth_oauthlib.flow import InstalledAppFlow
+    @property
+    def pendiente(self) -> bool:
+        return self.flujo is not None
 
-            try:
-                self.estado, self.error = "esperando", ""
-                flujo = InstalledAppFlow.from_client_secrets_file(str(cred), SCOPES)
-                creds = flujo.run_local_server(
-                    host="127.0.0.1", bind_addr="127.0.0.1", port=0, open_browser=True,
-                    authorization_prompt_message="", success_message="Autorización completada. Puedes cerrar esta pestaña.",
-                    timeout_seconds=300, access_type="offline", prompt="consent",
-                )
-                if not creds or not creds.refresh_token:
-                    raise RuntimeError("Google no devolvió un token de actualización")
-                almacen(cfg).guardar(creds.to_json())
-                self.estado = "completado"
-            except Exception as e:  # noqa: BLE001
-                log.warning("Fallo de autorización OAuth: %s", type(e).__name__)
-                self.estado, self.error = "error", f"{type(e).__name__}: {str(e)[:200]}"
+    def completar(self, cfg: Config, url_o_codigo: str) -> None:
+        """Acepta la dirección completa a la que redirigió Google o solo el código."""
+        from urllib.parse import parse_qs, urlsplit
 
-        self.hilo = threading.Thread(target=trabajo, name="oauth-gmail", daemon=True)
-        self.hilo.start()
+        if self.flujo is None:
+            raise GmailNoConfigurado("No hay ninguna autorización en curso: pulsa «Conectar Gmail» otra vez")
+        texto = (url_o_codigo or "").strip()
+        if "code=" in texto:
+            q = parse_qs(urlsplit(texto).query or texto.split("?", 1)[-1])
+            if q.get("error"):
+                raise GmailNoConfigurado(f"Google rechazó la autorización: {q['error'][0]}")
+            if q.get("state", [""])[0] != self.estado_oauth:
+                raise GmailNoConfigurado("La dirección no corresponde a la última autorización solicitada")
+            codigo = q.get("code", [""])[0]
+        else:
+            codigo = texto
+        if not codigo:
+            raise GmailNoConfigurado("No se ha encontrado el código de autorización")
+        try:
+            self.flujo.fetch_token(code=codigo)
+        except Exception as e:  # noqa: BLE001
+            self.error = f"{type(e).__name__}: {str(e)[:200]}"
+            raise GmailNoConfigurado(f"No se pudo completar la autorización ({type(e).__name__})") from e
+        creds = self.flujo.credentials
+        if not creds.refresh_token:
+            raise GmailNoConfigurado("Google no devolvió un token de actualización; revoca el acceso y repite")
+        almacen(cfg).guardar(creds.to_json())
+        self.flujo, self.url, self.estado_oauth, self.error = None, "", "", ""
+
+
+def guardar_credenciales(cfg: Config, contenido: bytes) -> None:
+    """Valida y guarda el credentials.json (cliente OAuth de tipo «Aplicación de escritorio»)."""
+    import json
+    import os
+
+    try:
+        datos = json.loads(contenido.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise GmailNoConfigurado("El archivo no es un JSON válido") from e
+    cliente = datos.get("installed")
+    if not isinstance(cliente, dict) or not cliente.get("client_id") or not cliente.get("client_secret"):
+        raise GmailNoConfigurado("Debe ser el JSON de un cliente OAuth de tipo «Aplicación de escritorio»")
+    ruta = ruta_credenciales(cfg)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    tmp = ruta.with_suffix(".tmp")
+    tmp.write_bytes(contenido)
+    try:
+        os.chmod(tmp, 0o600)
+    except OSError:
+        pass
+    os.replace(tmp, ruta)  # credencial reemplazable (cambio de cuenta o de proyecto)
 
 
 class ClienteGmail:

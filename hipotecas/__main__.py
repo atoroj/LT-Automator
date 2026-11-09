@@ -37,8 +37,12 @@ def main() -> int:
     puerto = int(cfg["servidor"]["puerto"])
     url = f"http://{host}:{puerto}/"
     abrir = cfg["servidor"].get("abrir_navegador", True) and not args.sin_navegador
+    if os.environ.get("HIPOTECAS_CONTENEDOR") == "1":
+        # Dentro de Docker hay que escuchar en la interfaz del contenedor. docker-compose solo publica
+        # el puerto en 127.0.0.1 del servidor; el acceso remoto va por Tailscale (ver DESPLIEGUE.md).
+        host, abrir = "0.0.0.0", False
 
-    if _puerto_ocupado(host, puerto):
+    if host == "127.0.0.1" and _puerto_ocupado(host, puerto):
         print(f"La aplicación ya está en marcha en {url}")
         if abrir:
             webbrowser.open(url)

@@ -9,7 +9,9 @@ Aplicación local para una sola usuaria (intermediaria de crédito inmobiliario)
 5. **Cálculos deterministas**: cuota francesa, endeudamiento, LTV, financiación y aportación de fondos.
 6. **Borradores de informe** en DOCX y PDF, que solo pasan a definitivos con **aprobación explícita**.
 
-Todo se ejecuta y se guarda en tu ordenador. El servidor solo escucha en `127.0.0.1` (no es accesible desde la red local ni desde Internet). Nada se envía a bancos ni a terceros.
+Se puede usar en tu PC con Windows (este README) o **desplegada en un servidor con Docker**, trabajando las 24 horas y con Google Drive como carpeta de entrada y copia: ver **[DESPLIEGUE.md](DESPLIEGUE.md)**.
+
+En el modo PC, todo se ejecuta y se guarda en tu ordenador. El servidor solo escucha en `127.0.0.1` (no es accesible desde la red local ni desde Internet). Nada se envía a bancos ni a terceros.
 
 ---
 

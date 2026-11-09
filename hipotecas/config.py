@@ -11,7 +11,9 @@ from pathlib import Path
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 
 DEFECTO: dict = {
-    "servidor": {"host": "127.0.0.1", "puerto": 8765, "abrir_navegador": True},
+    # hosts_permitidos: nombres con los que se accede desde otros dispositivos (p. ej. el de Tailscale)
+    "servidor": {"host": "127.0.0.1", "puerto": 8765, "abrir_navegador": True, "hosts_permitidos": []},
+    "copias": {"dias_conservar": 30},
     "rutas": {"datos": "datos"},
     "carpetas": {
         "raiz": "GESTOR HIPOTECARIO",

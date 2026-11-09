@@ -19,7 +19,7 @@ from ..db import conectar, todos, transaccion, uno
 from ..documentos import procesamiento
 from ..extraccion import clave_api
 from ..extraccion.servicio import estado_ia
-from ..gmail.conector import GmailNoConfigurado, almacen, ruta_credenciales
+from ..gmail.conector import GmailNoConfigurado, almacen, guardar_credenciales, ruta_credenciales
 from ..gmail.almacen_token import PROTECCION
 from ..incidencias import TIPOS_INCIDENCIA, cerrar_incidencia, contar_abiertas
 from ..informes import servicio as informes
@@ -70,8 +70,16 @@ def _int_opc(v: str | None) -> int | None:
 # ---------------------------------------------------------------- Panel
 
 @router.get("/")
-def panel(request: Request, conn: Conn):
+def panel(request: Request, conn: Conn, code: str = "", state: str = ""):
     app = request.app
+    if code and state and app.state.oauth.pendiente:
+        # Vuelta de Google tras autorizar Gmail (en el PC llega aquí directamente)
+        try:
+            app.state.oauth.completar(app.state.cfg, str(request.url))
+        except GmailNoConfigurado as e:
+            return redirigir("/gmail", error=str(e))
+        registrar(conn, "gmail_conectado")
+        return redirigir("/gmail", ok="Gmail conectado")
     _, desc_ia = app.state.proveedor()
     return render(
         request, "panel.html", conn,
@@ -492,6 +500,16 @@ def estado_gmail(request: Request, conn: Conn):
     )
 
 
+@router.post("/gmail/credenciales")
+def subir_credenciales(request: Request, conn: Conn, archivo: Annotated[UploadFile, File()]):
+    try:
+        guardar_credenciales(request.app.state.cfg, archivo.file.read(100_000))
+    except GmailNoConfigurado as e:
+        return redirigir("/gmail", error=str(e))
+    registrar(conn, "gmail_credenciales_guardadas")
+    return redirigir("/gmail", ok="Credenciales guardadas. Ahora pulsa «Conectar Gmail».")
+
+
 @router.post("/gmail/conectar")
 def conectar_gmail(request: Request, conn: Conn):
     try:
@@ -499,7 +517,17 @@ def conectar_gmail(request: Request, conn: Conn):
     except GmailNoConfigurado as e:
         return redirigir("/gmail", error=str(e))
     registrar(conn, "gmail_autorizacion_iniciada")
-    return redirigir("/gmail", ok="Se ha abierto el navegador para autorizar el acceso de solo lectura. Al terminar, recarga esta página.")
+    return redirigir("/gmail", ok="Abre el enlace de Google, elige la cuenta y acepta el acceso de solo lectura.")
+
+
+@router.post("/gmail/codigo")
+def completar_gmail(request: Request, conn: Conn, direccion: Texto):
+    try:
+        request.app.state.oauth.completar(request.app.state.cfg, direccion)
+    except GmailNoConfigurado as e:
+        return redirigir("/gmail", error=str(e))
+    registrar(conn, "gmail_conectado")
+    return redirigir("/gmail", ok="Gmail conectado")
 
 
 @router.post("/gmail/sincronizar")

@@ -36,3 +36,6 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# --- Servidor (Docker): configuración, datos, secretos y conexión con Drive ---
+servidor/

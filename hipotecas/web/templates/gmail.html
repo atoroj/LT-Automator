@@ -28,8 +28,7 @@
         <div class="peq suave">{{ ruta_credenciales }}</div></td></tr>
       <tr><td>Autorización</td><td>{% if conectado %}<span class="etq etq-ok">conectado</span>{% else %}<span class="etq etq-pendiente">sin conectar</span>{% endif %}
         <div class="peq suave">Token guardado con {{ proteccion }}</div>
-        {% if oauth.estado == "esperando" %}<div class="aviso aviso-info">Esperando a que completes la autorización en el navegador…</div>{% endif %}
-        {% if oauth.estado == "error" %}<div class="aviso aviso-error">{{ oauth.error }}</div>{% endif %}</td></tr>
+        {% if oauth.error %}<div class="aviso aviso-error">{{ oauth.error }}</div>{% endif %}</td></tr>
       <tr><td>Permiso</td><td class="peq">gmail.readonly (leer mensajes y adjuntos; no puede enviar, borrar ni modificar)</td></tr>
       <tr><td>Qué correos se procesan</td><td>Etiqueta <strong>{{ cfg["gmail"]["etiqueta"] }}</strong>
         {% if cfg["gmail"]["incluir_remitentes_de_expedientes"] %}<br>+ correos con adjuntos de los contactos de expedientes abiertos (últimos {{ cfg["gmail"]["dias_remitentes"] }} días){% endif %}
@@ -41,10 +40,30 @@
         {% if sync.contadores %}<div class="peq suave">{% for k, v in sync.contadores.items() %}{{ k }}: {{ v }} {% endfor %}</div>{% endif %}</td></tr>
     </table>
     <p>
-      <form class="linea" method="post" action="/gmail/conectar"><button type="submit" {% if not credenciales %}disabled{% endif %}>{{ "Reconectar" if conectado else "Conectar Gmail" }}</button></form>
+      <form class="linea" method="post" action="/gmail/conectar"><button type="submit" {% if not credenciales %}disabled{% endif %}>{{ "Reconectar / cambiar de cuenta" if conectado else "Conectar Gmail" }}</button></form>
       <form class="linea" method="post" action="/gmail/sincronizar"><button class="sec" type="submit">Sincronizar ahora</button></form>
       {% if conectado %}<form class="linea" method="post" action="/gmail/desconectar"><button class="sec" type="submit">Desconectar</button></form>{% endif %}
     </p>
+    {% if oauth.pendiente %}
+    <div class="aviso aviso-info">
+      <strong>Autorización en curso.</strong>
+      <p><a class="boton" href="{{ oauth.url }}" target="_blank" rel="noopener">1. Abrir Google y aceptar</a></p>
+      2. Si después de aceptar en Google ves «No se puede acceder a este sitio»
+      (normal cuando la aplicación está en el servidor), copia la dirección completa de la barra del navegador y pégala aquí:
+      <form class="bloque" method="post" action="/gmail/codigo">
+        <input type="text" name="direccion" required placeholder="http://127.0.0.1:8765/?state=...&code=...">
+        <p><button type="submit">Completar conexión</button></p>
+      </form>
+    </div>
+    {% endif %}
+    <details><summary>Credenciales OAuth de Google (credentials.json)</summary>
+      <p class="peq suave">Cliente OAuth de tipo «Aplicación de escritorio» creado en Google Cloud (ver README). Para cambiar de cuenta o
+        de proyecto de Google, sube el nuevo archivo y vuelve a conectar.</p>
+      <form method="post" action="/gmail/credenciales" enctype="multipart/form-data" class="campos-fila">
+        <div><input type="file" name="archivo" accept=".json" required></div>
+        <div><button class="sec" type="submit">Subir credenciales</button></div>
+      </form>
+    </details>
   </div>
   <div class="tarjeta">
     <h2>Importar correo .eml (pruebas o correos guardados)</h2>

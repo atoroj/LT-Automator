@@ -1,0 +1,35 @@
+# Despliegue en el servidor. Todo lo propio del servidor vive en ./servidor (excluido de git):
+#   servidor/config.toml   configuración (copiada de despliegue/config.servidor.example.toml)
+#   servidor/.env          variables (copiada de despliegue/env.example)
+#   servidor/datos/        base de datos, expedientes, secretos y copias
+#   servidor/rclone/       conexión con Google Drive (rclone.conf)
+# Guía completa: DESPLIEGUE.md
+
+services:
+  gestor:
+    build: .
+    image: gestor-hipotecario:latest
+    container_name: gestor-hipotecario
+    restart: unless-stopped
+    env_file: ./servidor/.env
+    volumes:
+      - ./servidor/datos:/datos
+      - ./servidor/config.toml:/config/config.toml:ro
+    ports:
+      # Solo en el propio servidor: no queda abierto a Internet. Se accede por Tailscale.
+      - "127.0.0.1:8765:8765"
+
+  drive:
+    image: rclone/rclone:1.68
+    container_name: gestor-drive
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: ./servidor/.env
+    environment:
+      RCLONE_CONFIG: /config/rclone/rclone.conf
+    entrypoint: ["/bin/sh", "/scripts/sincronizar_drive.sh"]
+    volumes:
+      - ./servidor/datos:/datos
+      - ./servidor/rclone:/config/rclone
+      - ./despliegue/sincronizar_drive.sh:/scripts/sincronizar_drive.sh:ro
+      - ./despliegue/restaurar_desde_drive.sh:/scripts/restaurar_desde_drive.sh:ro
