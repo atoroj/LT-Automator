@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Entrada de documentación</h1>
+<div class="tarjeta">
+  <h2>Carpeta de entrada</h2>
+  <p>Deja los documentos (por ejemplo, los de WhatsApp) en la subcarpeta del expediente dentro de:</p>
+  <p><code>{{ dir_entrada }}</code></p>
+  <p class="suave peq">Cada expediente abierto tiene su subcarpeta «REFERENCIA - Nombre». Los archivos que dejes sueltos en la raíz solo se
+    asocian si su nombre contiene la referencia; si no, van a Incidencias. Una vez guardado y verificado el documento, se retira de la entrada.</p>
+  <table>
+    <tr><td>Vigilancia automática</td><td>{% if entrada_activa %}<span class="etq etq-ok">activa</span> cada {{ cfg["carpetas"]["intervalo_segundos"] }} s
+      {% else %}<span class="etq etq-descartado">detenida</span>{% endif %}</td></tr>
+    <tr><td>Archivos en la entrada ahora</td><td>{{ en_entrada }}</td></tr>
+    <tr><td>Desde el arranque</td><td>{% for k, v in entrada.totales.items() %}{{ k }}: {{ v }} {% else %}—{% endfor %}</td></tr>
+    <tr><td>Última revisión</td><td>{{ entrada.ultima_ejecucion|fecha_hora }}
+      {% if entrada.contadores %}<span class="peq suave">· {% for k, v in entrada.contadores.items() %}{{ k }}: {{ v }} {% endfor %}</span>{% endif %}
+      {% if entrada.ultimo_error %}<div class="aviso aviso-error">{{ entrada.ultimo_error }}</div>{% endif %}</td></tr>
+  </table>
+  <form method="post" action="/entrada/revisar"><p><button type="submit">Revisar ahora</button></p></form>
+</div>
+
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h2>Gmail</h2>
+    <table>
+      <tr><td>Integración</td><td>{% if cfg["gmail"]["habilitado"] %}<span class="etq etq-ok">activada</span>{% else %}<span class="etq etq-descartado">desactivada</span> <span class="peq suave">(activa <code>[gmail] habilitado = true</code> en config.toml y reinicia)</span>{% endif %}</td></tr>
+      <tr><td>Credenciales OAuth</td><td>{% if credenciales %}<span class="etq etq-ok">encontradas</span>{% else %}<span class="etq etq-pendiente">faltan</span>{% endif %}
+        <div class="peq suave">{{ ruta_credenciales }}</div></td></tr>
+      <tr><td>Autorización</td><td>{% if conectado %}<span class="etq etq-ok">conectado</span>{% else %}<span class="etq etq-pendiente">sin conectar</span>{% endif %}
+        <div class="peq suave">Token guardado con {{ proteccion }}</div>
+        {% if oauth.estado == "esperando" %}<div class="aviso aviso-info">Esperando a que completes la autorización en el navegador…</div>{% endif %}
+        {% if oauth.estado == "error" %}<div class="aviso aviso-error">{{ oauth.error }}</div>{% endif %}</td></tr>
+      <tr><td>Permiso</td><td class="peq">gmail.readonly (leer mensajes y adjuntos; no puede enviar, borrar ni modificar)</td></tr>
+      <tr><td>Qué correos se procesan</td><td>Etiqueta <strong>{{ cfg["gmail"]["etiqueta"] }}</strong>
+        {% if cfg["gmail"]["incluir_remitentes_de_expedientes"] %}<br>+ correos con adjuntos de los contactos de expedientes abiertos (últimos {{ cfg["gmail"]["dias_remitentes"] }} días){% endif %}
+        {% if cfg["gmail"]["consulta"] %}<br>+ búsqueda: <code>{{ cfg["gmail"]["consulta"] }}</code>{% endif %}</td></tr>
+      <tr><td>Sincronización</td><td>cada {{ cfg["gmail"]["intervalo_minutos"] }} min · {% if sync_activo %}<span class="etq etq-ok">en marcha</span>{% else %}<span class="etq etq-descartado">detenida</span>{% endif %}
+        {% if sync.en_curso %}<span class="etq etq-pendiente">sincronizando…</span>{% endif %}</td></tr>
+      <tr><td>Última ejecución</td><td>{{ sync.ultima_ejecucion|fecha_hora }} · {{ sync.ultimo_resultado }}
+        {% if sync.ultimo_error %}<div class="aviso aviso-error">{{ sync.ultimo_error }}</div>{% endif %}
+        {% if sync.contadores %}<div class="peq suave">{% for k, v in sync.contadores.items() %}{{ k }}: {{ v }} {% endfor %}</div>{% endif %}</td></tr>
+    </table>
+    <p>
+      <form class="linea" method="post" action="/gmail/conectar"><button type="submit" {% if not credenciales %}disabled{% endif %}>{{ "Reconectar" if conectado else "Conectar Gmail" }}</button></form>
+      <form class="linea" method="post" action="/gmail/sincronizar"><button class="sec" type="submit">Sincronizar ahora</button></form>
+      {% if conectado %}<form class="linea" method="post" action="/gmail/desconectar"><button class="sec" type="submit">Desconectar</button></form>{% endif %}
+    </p>
+  </div>
+  <div class="tarjeta">
+    <h2>Importar correo .eml (pruebas o correos guardados)</h2>
+    <p class="suave">Sigue exactamente el mismo flujo que Gmail: asociación por referencia o remitente, procedencia, duplicados e incidencias.</p>
+    <form method="post" action="/importar-eml" enctype="multipart/form-data" class="campos-fila">
+      <div><input type="file" name="archivo" accept=".eml" required></div>
+      <div><button type="submit">Importar</button></div>
+    </form>
+  </div>
+</div>
+
+<h2>Mensajes procesados</h2>
+<table>
+  <tr><th>Fecha</th><th>Origen</th><th>Remitente</th><th>Asunto</th><th>Resultado</th><th>Expediente</th><th>Motivo</th></tr>
+  {% for m in mensajes %}
+  <tr><td>{{ m.fecha|fecha_hora }}</td><td>{{ m.origen }}</td><td class="peq">{{ m.remitente }}</td><td>{{ m.asunto }}</td>
+    <td><span class="etq etq-{{ m.estado }}">{{ m.estado }}</span>{% if m.ultimo_error %}<div class="peq suave">{{ m.intentos }} intento(s): {{ m.ultimo_error }}</div>{% endif %}</td>
+    <td>{% if m.expediente_id %}<a href="/expedientes/{{ m.expediente_id }}">{{ m.referencia }}</a>{% else %}—{% endif %}</td>
+    <td class="peq">{{ m.motivo or "" }}</td></tr>
+  {% else %}<tr><td colspan="7" class="suave">Aún no se ha procesado ningún mensaje.</td></tr>{% endfor %}
+</table>
+{% endblock %}

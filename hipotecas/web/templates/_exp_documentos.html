@@ -1,0 +1,34 @@
+<div class="tarjeta">
+  <h2>Subir documentos</h2>
+  <form method="post" action="/expedientes/{{ exp.id }}/documentos" enctype="multipart/form-data" class="campos-fila">
+    <div><input type="file" name="archivos" multiple required></div>
+    <div><button type="submit">Subir y procesar</button></div>
+  </form>
+  <p class="suave peq">Formatos admitidos: {{ cfg["documentos"]["extensiones_admitidas"]|join(", ") }} · máx. {{ cfg["documentos"]["tamano_maximo_mb"] }} MB.
+    El original se guarda sin modificar en <code>{{ cfg["expedientes"]["carpeta_entrada"] }}</code>; se crea una copia de trabajo renombrada en la carpeta de su categoría.</p>
+</div>
+
+{% for cat_k, cat_v in cat.CATEGORIAS.items() %}
+{% set docs_cat = documentos|selectattr("categoria", "equalto", cat_k)|list %}
+{% if docs_cat %}
+<h2>{{ cat_v }}</h2>
+<table>
+  <tr><th class="ancho-min">#</th><th>Tipo</th><th>Titular</th><th>Nombre original</th><th>Fecha doc.</th><th>Recibido</th><th>Procedencia</th><th>Estado</th></tr>
+  {% for d in docs_cat %}
+  <tr>
+    <td><a href="/documentos/{{ d.id }}">{{ d.id }}</a></td>
+    <td>{{ cat.etiqueta_tipo_doc(d.tipo_documento) }}{% if d.clasificacion_manual %} <span class="suave peq">(manual)</span>{% endif %}</td>
+    <td>{{ d.titular_nombre or "—" }}</td>
+    <td><a href="/documentos/{{ d.id }}">{{ d.nombre_original }}</a></td>
+    <td>{{ d.fecha_documento|fecha }}</td>
+    <td>{{ d.fecha_recepcion|fecha_hora }}</td>
+    <td class="peq">{% if d.origen == "gmail" %}Gmail · {{ d.remitente }}{% elif d.origen == "eml" %}.eml · {{ d.remitente }}{% elif d.origen == "carpeta" %}Carpeta de entrada{% else %}Subida manual{% endif %}</td>
+    <td><span class="etq etq-{{ d.estado }}">{{ cat.ESTADOS_DOCUMENTO.get(d.estado, d.estado) }}</span>
+      {% if d.duplicado_de %}<span class="peq"> de <a href="/documentos/{{ d.duplicado_de }}">#{{ d.duplicado_de }}</a></span>{% endif %}
+      {% if d.marcado_incompleto %}<span class="etq etq-incompleto">incompleto</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% else %}{% endfor %}
+{% if not documentos %}<p class="suave">Todavía no hay documentos en este expediente.</p>{% endif %}

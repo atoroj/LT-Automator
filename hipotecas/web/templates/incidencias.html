@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Bandeja de incidencias</h1>
+<p class="suave">Aquí llegan los correos que no se han podido asociar con seguridad a un expediente y los documentos con problemas.
+  Ninguna incidencia borra documentos: los adjuntos quedan guardados en <code>bandeja_incidencias</code>.</p>
+<p>Ver: {% for k, v in [("abierta","Abiertas"),("resuelta","Resueltas"),("descartada","Descartadas"),("","Todas")] %}
+  <a href="/incidencias?estado={{ k }}" class="{% if estado == k %}etq etq-abierta{% endif %}">{{ v }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+<table>
+  <tr><th>#</th><th>Tipo</th><th>Descripción</th><th>Expediente</th><th>Creada</th><th>Estado</th><th>Acciones</th></tr>
+  {% for i in incidencias %}
+  <tr>
+    <td>{{ i.id }}</td>
+    <td>{{ tipos.get(i.tipo, i.tipo) }}</td>
+    <td>{{ i.descripcion }}
+      {% if i.documento_id %}<div><a href="/documentos/{{ i.documento_id }}">Ver documento #{{ i.documento_id }}</a></div>{% endif %}
+      {% if adjuntos.get(i.id) %}<div class="peq">Adjuntos: {% for d in adjuntos[i.id] %}<a href="/documentos/{{ d.id }}">{{ d.nombre_original }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+      {% if i.resolucion %}<div class="peq suave">Resolución: {{ i.resolucion }}</div>{% endif %}
+    </td>
+    <td>{% if i.expediente_id %}<a href="/expedientes/{{ i.expediente_id }}">{{ i.referencia }}</a>{% else %}—{% endif %}</td>
+    <td>{{ i.creado|fecha_hora }}</td>
+    <td><span class="etq etq-{{ i.estado }}">{{ i.estado }}</span></td>
+    <td>
+      {% if i.estado == "abierta" %}
+        {% if i.tipo == "correo_sin_expediente" %}
+        <form method="post" action="/incidencias/{{ i.id }}/asignar">
+          <select name="expediente_id" required><option value="">Asignar a expediente…</option>
+            {% for e in expedientes %}<option value="{{ e.id }}">{{ e.referencia }} · {{ e.nombre }}</option>{% endfor %}</select>
+          <button class="mini" type="submit">Asignar</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/incidencias/{{ i.id }}/cerrar">
+          <input type="text" name="resolucion" placeholder="Comentario">
+          <button class="mini sec" type="submit" name="estado" value="resuelta">Marcar resuelta</button>
+          <button class="mini sec" type="submit" name="estado" value="descartada">Descartar</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="suave">No hay incidencias.</td></tr>{% endfor %}
+</table>
+{% endblock %}

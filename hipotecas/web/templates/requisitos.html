@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="cabecera-exp"><h1>Checklist documental</h1><a class="boton sec" href="/requisitos/exportar">Exportar JSON</a></div>
+<p class="suave">Cada requisito define qué documento se exige, para qué operaciones y perfiles laborales, cuántos y con qué vigencia.
+  Un documento solo aparece como pendiente si un requisito activo lo exige para ese expediente.
+  Operaciones y perfiles: <code>*</code> para todos o una lista separada por comas con los códigos indicados abajo.</p>
+
+<table>
+  <tr><th>Código</th><th>Documento</th><th>Descripción</th><th>Ámbito</th><th>Operaciones</th><th>Perfiles</th><th class="num">Mín.</th><th class="num">Vigencia</th><th>Caducidad</th><th>Activo</th><th></th></tr>
+  {% for r in requisitos %}
+  <tr>
+    <td>{{ r.codigo }}</td><td>{{ cat.etiqueta_tipo_doc(r.tipo_documento) }}</td><td>{{ r.descripcion }}</td><td>{{ r.ambito }}</td>
+    <td class="peq">{{ r.operaciones }}</td><td class="peq">{{ r.perfiles }}</td><td class="num">{{ r.minimo }}</td>
+    <td class="num">{{ r.vigencia_dias ~ " días" if r.vigencia_dias else "—" }}</td><td>{{ "sí" if r.controla_caducidad else "no" }}</td>
+    <td><span class="etq etq-{{ 'ok' if r.activo else 'descartado' }}">{{ "sí" if r.activo else "no" }}</span></td>
+    <td><details><summary class="peq">Editar</summary>{% set edit = r %}{% include "_form_requisito.html" %}</details></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<div class="tarjeta"><h2>Nuevo requisito</h2>{% set edit = None %}{% include "_form_requisito.html" %}</div>
+
+<div class="rejilla-2">
+  <div class="tarjeta"><h3>Códigos de operación</h3><ul class="peq">{% for k, v in cat.TIPOS_OPERACION.items() %}<li><code>{{ k }}</code> — {{ v }}</li>{% endfor %}</ul></div>
+  <div class="tarjeta"><h3>Códigos de perfil laboral</h3><ul class="peq">{% for k, v in cat.PERFILES_LABORALES.items() %}<li><code>{{ k }}</code> — {{ v }}</li>{% endfor %}</ul></div>
+</div>
+{% endblock %}

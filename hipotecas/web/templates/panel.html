@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Panel</h1>
+<div class="rejilla">
+  <div class="tarjeta">
+    <div class="suave">Incidencias abiertas</div>
+    <div class="cifra">{{ n_incidencias }}</div>
+    <a href="/incidencias">Ver bandeja</a>
+  </div>
+  <div class="tarjeta">
+    <div class="suave">Documentos pendientes de revisión</div>
+    <div class="cifra">{{ pendientes_revision }}</div>
+  </div>
+  <div class="tarjeta">
+    <div class="suave">Pendientes de análisis con IA</div>
+    <div class="cifra">{{ pendientes_analisis }}</div>
+    <a href="/ia">Ver IA</a>
+  </div>
+  <div class="tarjeta">
+    <div class="suave">Datos pendientes de confirmar</div>
+    <div class="cifra">{{ datos_pendientes }}</div>
+  </div>
+  <div class="tarjeta">
+    <div class="suave">Estado del sistema</div>
+    <ul class="lista-limpia peq">
+      <li>Gmail:
+        {% if not gmail_habilitado %}<span class="etq etq-descartado">desactivado</span>
+        {% elif not gmail_conectado %}<span class="etq etq-pendiente">sin conectar</span>
+        {% else %}<span class="etq etq-ok">conectado</span>{% endif %}
+        {% if sync.ultima_ejecucion %}· última sincronización {{ sync.ultima_ejecucion|fecha_hora }} ({{ sync.ultimo_resultado }}){% endif %}
+      </li>
+      <li>OCR: {% if ocr_ok %}<span class="etq etq-ok">disponible</span>{% else %}<span class="etq etq-pendiente">no disponible</span>{% endif %} <span class="suave">{{ ocr_motivo }}</span></li>
+      <li>Extracción: <span class="suave">{{ desc_ia }}</span> <a href="/ia">configurar</a></li>
+      <li>Configuración: <span class="suave">{{ cfg.origen }}</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <div class="cabecera-exp"><h2>Expedientes recientes</h2><a class="boton" href="/expedientes/nuevo">Nuevo expediente</a></div>
+    <table>
+      <tr><th>Referencia</th><th>Nombre</th><th>Estado</th><th class="num">Docs</th></tr>
+      {% for e in expedientes %}
+      <tr><td><a href="/expedientes/{{ e.id }}">{{ e.referencia }}</a></td><td>{{ e.nombre }}</td>
+          <td><span class="etq etq-{{ e.estado }}">{{ cat.ESTADOS_EXPEDIENTE.get(e.estado, e.estado) }}</span></td><td class="num">{{ e.n_docs }}</td></tr>
+      {% else %}<tr><td colspan="4" class="suave">Todavía no hay expedientes.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="tarjeta">
+    <h2>Últimas incidencias</h2>
+    <ul class="lista-limpia">
+      {% for i in incidencias %}<li><span class="etq etq-incidencia">{{ i.tipo }}</span> {{ i.descripcion[:140] }}</li>
+      {% else %}<li class="suave">Sin incidencias abiertas.</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

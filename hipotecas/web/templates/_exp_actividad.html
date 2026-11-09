@@ -1,0 +1,8 @@
+<table>
+  <tr><th>Fecha</th><th>Evento</th><th>Documento</th><th>Detalle</th></tr>
+  {% for a in actividad %}
+  <tr><td>{{ a.fecha|fecha_hora }}</td><td>{{ a.tipo }}</td>
+    <td>{% if a.documento_id %}<a href="/documentos/{{ a.documento_id }}">#{{ a.documento_id }}</a>{% endif %}</td>
+    <td class="peq">{{ a.detalle }}</td></tr>
+  {% else %}<tr><td colspan="4" class="suave">Sin actividad.</td></tr>{% endfor %}
+</table>

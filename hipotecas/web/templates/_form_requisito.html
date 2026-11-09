@@ -1,0 +1,21 @@
+<form class="bloque" method="post" action="/requisitos">
+  {% if edit %}<input type="hidden" name="requisito_id" value="{{ edit.id }}">{% endif %}
+  <div class="campos-fila">
+    <div><label>Código</label><input type="text" name="codigo" value="{{ edit.codigo if edit else '' }}" required></div>
+    <div><label>Tipo de documento</label><select name="tipo_documento">
+      {% for k, v in cat.TIPOS_DOCUMENTO.items() if k != "desconocido" %}<option value="{{ k }}" {% if edit and edit.tipo_documento == k %}selected{% endif %}>{{ v[0] }}</option>{% endfor %}</select></div>
+    <div><label>Ámbito</label><select name="ambito">
+      <option value="titular" {% if edit and edit.ambito == "titular" %}selected{% endif %}>Por titular</option>
+      <option value="expediente" {% if edit and edit.ambito == "expediente" %}selected{% endif %}>Por operación</option></select></div>
+  </div>
+  <label>Descripción</label><input type="text" name="descripcion" value="{{ edit.descripcion if edit else '' }}">
+  <div class="campos-fila">
+    <div><label>Operaciones</label><input type="text" name="operaciones" value="{{ edit.operaciones if edit else '*' }}"></div>
+    <div><label>Perfiles</label><input type="text" name="perfiles" value="{{ edit.perfiles if edit else '*' }}"></div>
+    <div><label>Mínimo</label><input type="number" min="1" name="minimo" value="{{ edit.minimo if edit else 1 }}"></div>
+    <div><label>Vigencia (días)</label><input type="number" min="1" name="vigencia_dias" value="{{ edit.vigencia_dias if edit and edit.vigencia_dias else '' }}"></div>
+  </div>
+  <label><input type="checkbox" name="controla_caducidad" value="1" {% if edit and edit.controla_caducidad %}checked{% endif %}> Comprobar fecha de caducidad (documentos de identidad)</label>
+  <label><input type="checkbox" name="activo" value="1" {% if not edit or edit.activo %}checked{% endif %}> Activo</label>
+  <p><button type="submit">Guardar</button></p>
+</form>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Expedientes hipotecarios{% endblock %}</title>
+  <link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<header class="barra">
+  <span class="marca">Expedientes hipotecarios</span>
+  <nav>
+    <a href="/">Panel</a>
+    <a href="/expedientes">Expedientes</a>
+    <a href="/incidencias">Incidencias{% if n_incidencias %}<span class="contador">{{ n_incidencias }}</span>{% endif %}</a>
+    <a href="/gmail">Entrada</a>
+    <a href="/requisitos">Checklist</a>
+    <a href="/ia">IA</a>
+    <a href="/actividad">Actividad</a>
+  </nav>
+</header>
+<main>
+  {% if ok %}<div class="aviso aviso-ok">{{ ok }}</div>{% endif %}
+  {% if error %}<div class="aviso aviso-error">{{ error }}</div>{% endif %}
+  {% block contenido %}{% endblock %}
+</main>
+</body>
+</html>

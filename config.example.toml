@@ -1,0 +1,113 @@
+# Configuración de ejemplo. Cópiala como config.toml y ajústala.
+# config.toml está excluido del control de versiones. NO pongas aquí claves de API:
+# las claves se leen de variables de entorno.
+
+[servidor]
+# Solo se admite una dirección de loopback. La aplicación se niega a arrancar con otra.
+host = "127.0.0.1"
+puerto = 8765
+abrir_navegador = true
+
+[rutas]
+# Carpeta donde se guardan expedientes, base de datos, tokens y registros.
+# Relativa a la carpeta del proyecto o absoluta, p. ej. 'C:\Users\yo\Documents\Hipotecas'
+datos = "datos"
+
+[carpetas]
+# Estructura visible dentro de la carpeta de datos:
+#   GESTOR HIPOTECARIO\00 - ENTRADA        <- deja aquí los documentos (p. ej. los de WhatsApp)
+#   GESTOR HIPOTECARIO\02 - EXPEDIENTES    <- un expediente por carpeta (agrupados por colaborador)
+#   GESTOR HIPOTECARIO\03 - INCIDENCIAS    <- lo que no se ha podido asociar con seguridad
+raiz = "GESTOR HIPOTECARIO"
+entrada = "00 - ENTRADA"
+expedientes = "02 - EXPEDIENTES"
+incidencias = "03 - INCIDENCIAS"
+# Revisión automática de la carpeta de entrada.
+vigilar_entrada = true
+intervalo_segundos = 15
+# Un archivo se procesa cuando lleva este tiempo sin cambiar (evita leerlo mientras se copia).
+segundos_estabilidad = 5
+
+[expedientes]
+prefijo_referencia = "EXP"
+carpeta_entrada = "00_Entrada_Originales"
+
+[expedientes.subcarpetas]
+identificacion = "01_Identificacion"
+laboral = "02_Laboral"
+economica_fiscal = "03_Economica_Fiscal"
+endeudamiento = "04_Endeudamiento"
+vivienda = "05_Vivienda"
+informes = "06_Informes"
+otros = "07_Otros"
+
+[documentos]
+tamano_maximo_mb = 25
+extensiones_admitidas = ["pdf", "jpg", "jpeg", "png", "tif", "tiff"]
+# Si una página de PDF tiene menos caracteres que esto, se trata como escaneada (OCR).
+min_caracteres_pagina = 40
+
+[ocr]
+habilitado = true
+# Ruta a tesseract.exe si no está en el PATH.
+tesseract_cmd = 'C:\Program Files\Tesseract-OCR\tesseract.exe'
+idioma = "spa"
+dpi = 300
+
+[gmail]
+habilitado = false
+# Solo se procesan los mensajes con esta etiqueta exacta.
+etiqueta = "Hipotecas/Procesar"
+intervalo_minutos = 10
+# Asociar al expediente cuyo correo de contacto coincide EXACTAMENTE con el remitente
+# (solo si coincide con un único expediente abierto). Si es false, solo por referencia en el asunto.
+asociar_por_remitente = true
+# Además de la etiqueta, recoger automáticamente los correos CON ADJUNTOS enviados por los correos de
+# contacto de los expedientes abiertos (de los últimos dias_remitentes días).
+incluir_remitentes_de_expedientes = true
+dias_remitentes = 30
+# Búsqueda adicional de Gmail opcional (misma sintaxis que el buscador de Gmail), p. ej.:
+#   consulta = 'has:attachment subject:(hipoteca OR documentación) newer_than:15d'
+consulta = ""
+# Referencia del expediente en el asunto, p. ej. "Documentación [EXP-2026-0001]".
+patron_referencia = 'EXP-\d{4}-\d{4}'
+# Imágenes inline pequeñas (logos de firma) se ignoran y se registra que se ignoraron.
+ignorar_imagenes_inline_menores_kb = 30
+max_mensajes_por_sincronizacion = 50
+max_intentos_por_mensaje = 5
+
+[ia]
+# La clasificación y la extracción de datos se hacen con IA (Anthropic).
+# Para activarla hacen falta DOS cosas:
+#   1) permitir_envio_externo = true  (consentimiento explícito para enviar texto fuera del ordenador)
+#   2) la clave de API: pantalla «IA» de la aplicación (se guarda cifrada) o variable de entorno ANTHROPIC_API_KEY.
+# Mientras no esté activada, los documentos se guardan y quedan «pendientes de análisis» (clasificación manual).
+# Durante el desarrollo usa SOLO documentos ficticios o anonimizados.
+proveedor = "anthropic"
+permitir_envio_externo = false
+modelo = "claude-opus-5-5"
+# low | medium | high: más esfuerzo = análisis más cuidadoso, más lento y más caro.
+esfuerzo = "medium"
+# Máximo de caracteres de texto que se envían por documento.
+max_caracteres_texto = 15000
+# Oculta IBAN, correos electrónicos y teléfonos antes de enviar (no se necesitan para la extracción).
+seudonimizar = true
+# Si el modelo rechaza la petición, la API de Anthropic la reintenta en otro modelo de Anthropic.
+usar_fallback_servidor = true
+timeout_segundos = 180
+max_reintentos = 2
+
+[calculos]
+# Valores por defecto; cada expediente puede fijar los suyos en "Datos de la operación".
+tipo_interes_anual = 3.0
+plazo_anios = 30
+ratio_endeudamiento_maximo = 35.0
+ltv_maximo = 80.0
+financiacion_maxima_precio = 80.0
+# ITP o IVA+AJD según comunidad autónoma y tipo de vivienda (orientativo).
+porcentaje_impuestos_compra = 8.0
+# Notaría, registro, gestoría y tasación (orientativo).
+gastos_fijos_estimados = 2500.0
+incremento_estres_puntos = 1.0
+# Número de nóminas más recientes que se promedian para estimar ingresos.
+nominas_para_media = 3

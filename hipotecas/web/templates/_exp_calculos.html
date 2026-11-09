@@ -1,0 +1,58 @@
+{% set r = a.resultado %}{% set e = a.entrada %}
+<div class="aviso aviso-info">Cálculos deterministas y orientativos (sistema de amortización francés). No constituyen una decisión de crédito.
+  Para cambiar importe, plazo, tipo o ahorros añade o corrige el dato en <a href="/expedientes/{{ exp.id }}?pestana=datos">Datos extraídos</a>;
+  los valores por defecto se configuran en <code>config.toml</code> ([calculos]).</div>
+{% if a.entradas_pendientes %}<div class="aviso aviso-error">Hay datos de entrada pendientes de confirmar: el resultado puede cambiar al revisarlos.</div>{% endif %}
+
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h2>Datos de la operación</h2>
+    <table>
+      <tr><th>Dato</th><th class="num">Valor</th><th>Estado</th><th>Fuente</th></tr>
+      {% for k, v in a.operacion.items() %}
+      <tr><td>{{ a.campos_catalogo[k][0] }}</td><td class="num">{{ valor_campo(a.campos_catalogo[k][1], v.valor) }}</td>
+        <td><span class="etq etq-{{ v.estado }}">{{ v.estado }}</span></td><td class="peq">{{ v.fuente }}</td></tr>
+      {% endfor %}
+    </table>
+    <h2>Ingresos y deudas</h2>
+    <table>
+      <tr><th>Titular</th><th class="num">Ingresos netos/mes</th><th>Estado</th><th>Fuente</th></tr>
+      {% for t in a.titulares %}
+      <tr><td>{{ t.titular.nombre }}</td><td class="num">{{ t.ingresos.valor|euros }}</td>
+        <td><span class="etq etq-{{ t.ingresos.estado }}">{{ t.ingresos.estado }}</span>{% if t.ingresos.basado_en_pendientes %} <span class="peq suave">(con datos sin confirmar)</span>{% endif %}</td>
+        <td class="peq">{{ t.ingresos.fuente }}</td></tr>
+      {% for x in t.otros_ingresos %}<tr><td class="peq">otros ingresos / pensión</td><td class="num">{{ x.valor|euros }}</td><td>{{ x.estado }}</td><td class="peq">{{ x.fuente }}</td></tr>{% endfor %}
+      {% for d in t.deudas %}<tr><td class="peq">préstamo {{ d.entidad }}</td><td class="num">−{{ d.cuota.valor|euros }}</td><td>{{ d.cuota.estado }}</td><td class="peq">{{ d.cuota.fuente }}</td></tr>{% endfor %}
+      {% endfor %}
+      <tr><th>Total unidad familiar</th><th class="num">{{ a.ingresos_totales|euros }}</th><th colspan="2">Deudas: {{ a.deudas_totales|euros }}/mes</th></tr>
+    </table>
+  </div>
+  <div class="tarjeta">
+    <h2>Simulación</h2>
+    <table>
+      <tr><td>Capital</td><td class="num">{{ e.importe_solicitado|euros }}</td></tr>
+      <tr><td>Plazo</td><td class="num">{{ e.plazo_anios }} años</td></tr>
+      <tr><td>Tipo nominal anual</td><td class="num">{{ e.tipo_interes_anual|pct }}</td></tr>
+      <tr><th>Cuota mensual</th><th class="num">{{ r.cuota|euros }}</th></tr>
+      <tr><td>Total intereses</td><td class="num">{{ r.total_intereses|euros }}</td></tr>
+      <tr><td>Cuota en estrés ({{ r.tipo_estres|pct }})</td><td class="num">{{ r.cuota_estres|euros }}</td></tr>
+    </table>
+    <h2>Ratios</h2>
+    <table>
+      <tr><td>Endeudamiento actual</td><td class="num">{{ r.endeudamiento_actual|pct }}</td></tr>
+      <tr><th>Endeudamiento con hipoteca</th><th class="num">{{ r.endeudamiento_con_hipoteca|pct }}</th></tr>
+      <tr><td>Endeudamiento en estrés</td><td class="num">{{ r.endeudamiento_estres|pct }}</td></tr>
+      <tr><td>LTV <span class="peq suave">({{ r.base_ltv or "sin valoración" }})</span></td><td class="num">{{ r.ltv|pct }}</td></tr>
+      <tr><td>Financiación sobre precio</td><td class="num">{{ r.financiacion_sobre_precio|pct }}</td></tr>
+      <tr><td>Impuestos estimados</td><td class="num">{{ r.impuestos|euros }}</td></tr>
+      <tr><td>Gastos totales estimados</td><td class="num">{{ r.gastos_totales|euros }}</td></tr>
+      <tr><th>Aportación necesaria</th><th class="num">{{ r.aportacion_necesaria|euros }}</th></tr>
+      <tr><td>Ahorros − aportación</td><td class="num">{{ r.diferencia_ahorros|euros }}</td></tr>
+      <tr><td>Importe máximo por endeudamiento ({{ e.ratio_maximo|pct }})</td><td class="num">{{ r.importe_maximo_por_ratio|euros }}</td></tr>
+      <tr><td>Importe máximo por LTV ({{ e.ltv_maximo|pct }})</td><td class="num">{{ r.importe_maximo_por_ltv|euros }}</td></tr>
+    </table>
+    {% if r.alertas %}<h3>Indicadores sobre umbral</h3><ul>{% for x in r.alertas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if r.faltan %}<h3>Faltan datos</h3><ul>{% for x in r.faltan %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if a.notas %}<h3>Notas</h3><ul class="peq">{% for x in a.notas %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+</div>

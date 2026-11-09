@@ -1,0 +1,56 @@
+<div class="aviso aviso-info">Los datos extraídos automáticamente quedan <strong>pendientes de confirmar</strong> hasta que los revises.
+  Al confirmarlos pasan a <em>acreditados</em> (si proceden de un documento). Nada se completa por suposición.</div>
+
+<table>
+  <tr><th>Titular</th><th>Dato</th><th>Valor</th><th>Estado</th><th>Origen</th><th>Evidencia</th><th>Acciones</th></tr>
+  {% for c in campos %}
+  {% set info = campos_catalogo.get(c.clave) %}
+  <tr>
+    <td>{% for t in titulares if t.id == c.titular_id %}{{ t.nombre }}{% else %}<span class="suave">Operación</span>{% endfor %}</td>
+    <td>{{ info[0] if info else c.clave }}</td>
+    <td class="num">{{ valor_campo(info[1] if info else "texto", c.valor) }}</td>
+    <td><span class="etq etq-{{ c.estado }}">{{ cat.ESTADOS_CAMPO.get(c.estado, c.estado) }}</span></td>
+    <td class="peq">{% if c.documento_id %}<a href="/documentos/{{ c.documento_id }}">doc. #{{ c.documento_id }}</a>{% if c.pagina %}, pág. {{ c.pagina }}{% endif %}{% else %}manual{% endif %}
+      <div class="suave">{{ c.origen }}</div></td>
+    <td class="peq suave">{{ c.evidencia }}{% if c.nota %}<div>Nota: {{ c.nota }}</div>{% endif %}</td>
+    <td>
+      {% if c.estado == "pendiente_confirmar" %}
+      <form class="linea" method="post" action="/campos/{{ c.id }}/confirmar"><button class="mini" type="submit">Confirmar</button></form>
+      {% endif %}
+      {% if c.estado != "descartado" %}
+      <form class="linea" method="post" action="/campos/{{ c.id }}/descartar"><button class="mini sec" type="submit">Descartar</button></form>
+      <details><summary class="peq">Corregir</summary>
+        <form method="post" action="/campos/{{ c.id }}/corregir">
+          <input type="text" name="valor" value="{{ c.valor }}" required>
+          <input type="text" name="nota" placeholder="Nota (opcional)">
+          <button class="mini" type="submit">Guardar corrección</button>
+        </form></details>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="suave">No hay datos todavía.</td></tr>{% endfor %}
+</table>
+
+<div class="tarjeta">
+  <h2>Añadir dato manualmente</h2>
+  <p class="suave peq">Usa «Declarado por el cliente» para datos que el cliente te comunica sin justificante (p. ej. importe solicitado, ahorros, plazo deseado).
+    «Acreditado» exige indicar el documento que lo justifica.</p>
+  <form class="bloque" method="post" action="/expedientes/{{ exp.id }}/datos">
+    <div class="campos-fila">
+      <div><label>Dato</label><select name="clave">
+        {% for k, v in campos_catalogo.items() %}<option value="{{ k }}">{{ v[0] }}{% if v[2] == "titular" %} (titular){% endif %}</option>{% endfor %}
+      </select></div>
+      <div><label>Valor</label><input type="text" name="valor" required placeholder="p. ej. 180.000,00 · 15/03/2026 · 30"></div>
+      <div><label>Estado</label><select name="estado"><option value="declarado">Declarado por el cliente</option><option value="acreditado">Acreditado documentalmente</option></select></div>
+    </div>
+    <div class="campos-fila">
+      <div><label>Titular (si es un dato personal)</label><select name="titular_id"><option value="">— Operación —</option>
+        {% for t in titulares %}<option value="{{ t.id }}">{{ t.nombre }}</option>{% endfor %}</select></div>
+      <div><label>Documento que lo acredita</label><select name="documento_id"><option value="">—</option>
+        {% for d in documentos if d.estado not in ("duplicado", "descartado") %}<option value="{{ d.id }}">#{{ d.id }} {{ cat.etiqueta_tipo_doc(d.tipo_documento) }} · {{ d.nombre_original }}</option>{% endfor %}</select></div>
+      <div><label>Página</label><input type="number" name="pagina" min="1"></div>
+      <div><label>Nota</label><input type="text" name="nota"></div>
+    </div>
+    <p><button type="submit">Añadir dato</button></p>
+  </form>
+</div>

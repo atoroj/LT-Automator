@@ -1,0 +1,46 @@
+<p class="suave">Solo se evalúan los requisitos activos que aplican a la operación y al perfil laboral de cada titular,
+  más los que marques como obligatorios para este expediente. Configura las reglas generales en <a href="/requisitos">Checklist</a>.</p>
+<table>
+  <tr><th>Requisito</th><th>Titular</th><th>Estado</th><th>Detalle</th><th>Documentos</th></tr>
+  {% for i in ev.items %}
+  <tr>
+    <td>{{ i.requisito.descripcion }}{% if i.modo == "obligatorio" %} <span class="suave peq">(obligatorio en este expediente)</span>{% endif %}
+      <div class="suave peq">{{ cat.etiqueta_tipo_doc(i.requisito.tipo_documento) }} · mín. {{ i.requisito.minimo }}{% if i.requisito.vigencia_dias %} · vigencia {{ i.requisito.vigencia_dias }} días{% endif %}</div></td>
+    <td>{{ i.titular.nombre if i.titular else "Operación" }}</td>
+    <td><span class="etq etq-{{ i.estado }}">{{ i.etiqueta_estado }}</span></td>
+    <td>{{ i.detalle }}
+      {% for x in i.incoherencias %}<div class="peq"><span class="etq etq-error">{{ x.nivel }}</span> {{ x.mensaje }}</div>{% endfor %}</td>
+    <td class="peq">{% for d in i.documentos %}<a href="/documentos/{{ d.id }}">#{{ d.id }}</a> ({{ d.fecha_documento|fecha }}) {% else %}—{% endfor %}</td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="suave">No hay requisitos aplicables.</td></tr>{% endfor %}
+</table>
+
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h3>Otros avisos documentales</h3>
+    <ul>
+      {% for d in ev.duplicados %}<li>Duplicado: <a href="/documentos/{{ d.id }}">#{{ d.id }}</a> {{ d.nombre_original }} (igual que #{{ d.duplicado_de }})</li>{% endfor %}
+      {% for d in ev.sin_titular %}<li>Sin titular asignado: <a href="/documentos/{{ d.id }}">#{{ d.id }}</a> {{ d.nombre_original }}</li>{% endfor %}
+      {% for d in ev.sin_clasificar %}<li>Sin clasificar: <a href="/documentos/{{ d.id }}">#{{ d.id }}</a> {{ d.nombre_original }}</li>{% endfor %}
+      {% for d in ev.con_incidencia %}<li>Con incidencia: <a href="/documentos/{{ d.id }}">#{{ d.id }}</a> {{ d.nombre_original }}</li>{% endfor %}
+      {% for x in ev.incoherencias %}<li><span class="etq etq-{{ 'error' if x.nivel == 'error' else 'pendiente' }}">{{ x.nivel }}</span> {{ x.mensaje }}</li>{% endfor %}
+    </ul>
+    {% if not (ev.duplicados or ev.sin_titular or ev.sin_clasificar or ev.con_incidencia or ev.incoherencias) %}<p class="suave">Sin avisos.</p>{% endif %}
+  </div>
+  <div class="tarjeta">
+    <h3>Ajustar requisitos para este expediente</h3>
+    <table>
+      <tr><th>Requisito</th><th>Regla general</th><th>En este expediente</th></tr>
+      {% for r in requisitos %}
+      <tr><td>{{ r.descripcion }}</td><td class="peq">{{ "activo" if r.activo else "inactivo" }}</td>
+        <td><form class="linea" method="post" action="/expedientes/{{ exp.id }}/requisitos/{{ r.id }}/modo">
+          {% set m = modos.get(r.id, "auto") %}
+          <select name="modo">
+            <option value="auto" {% if m == "auto" %}selected{% endif %}>Según reglas</option>
+            <option value="obligatorio" {% if m == "obligatorio" %}selected{% endif %}>Obligatorio</option>
+            <option value="no_aplica" {% if m == "no_aplica" %}selected{% endif %}>No aplica</option>
+          </select> <button class="mini sec" type="submit">Aplicar</button></form></td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>

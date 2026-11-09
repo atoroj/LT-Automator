@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="cabecera-exp"><h1>Expedientes</h1><a class="boton" href="/expedientes/nuevo">Nuevo expediente</a></div>
+<form class="tarjeta campos-fila" method="get" action="/expedientes">
+  <div><label class="peq">Buscar (referencia, nombre, titular o DNI)</label><input type="text" name="buscar" value="{{ buscar }}"></div>
+  <div><label class="peq">Colaborador</label>
+    <select name="colaborador"><option value="">Todos</option>
+      {% for c in colaboradores %}<option value="{{ c }}" {% if c == colaborador %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select></div>
+  <div><label class="peq">Estado</label>
+    <select name="estado"><option value="">Todos</option>
+      {% for k, v in cat.ESTADOS_EXPEDIENTE.items() %}<option value="{{ k }}" {% if k == estado %}selected{% endif %}>{{ v }}</option>{% endfor %}
+    </select></div>
+  <div><button type="submit">Filtrar</button></div>
+</form>
+<table>
+  <tr><th>Referencia</th><th>Nombre</th><th>Colaborador</th><th>Titulares</th><th>Operación</th><th>Estado</th><th class="num">Docs</th><th>Actualizado</th></tr>
+  {% for e in expedientes %}
+  <tr>
+    <td><a href="/expedientes/{{ e.id }}">{{ e.referencia }}</a></td><td>{{ e.nombre }}</td><td>{{ e.colaborador }}</td><td>{{ e.nombres_titulares or "—" }}</td>
+    <td>{{ cat.TIPOS_OPERACION.get(e.tipo_operacion, e.tipo_operacion) }}</td>
+    <td><span class="etq etq-{{ e.estado }}">{{ cat.ESTADOS_EXPEDIENTE.get(e.estado, e.estado) }}</span></td>
+    <td class="num">{{ e.n_docs }}</td><td>{{ e.actualizado|fecha_hora }}</td>
+  </tr>
+  {% else %}<tr><td colspan="8" class="suave">No hay expedientes.</td></tr>{% endfor %}
+</table>
+{% endblock %}

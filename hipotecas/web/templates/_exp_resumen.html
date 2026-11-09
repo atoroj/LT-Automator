@@ -1,0 +1,66 @@
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h2>Datos del expediente</h2>
+    <form class="bloque" method="post" action="/expedientes/{{ exp.id }}/editar">
+      <label>Nombre</label><input type="text" name="nombre" value="{{ exp.nombre }}" required>
+      <div class="campos-fila">
+        <div><label>Tipo de operación</label>
+          <select name="tipo_operacion">{% for k, v in cat.TIPOS_OPERACION.items() %}<option value="{{ k }}" {% if k == exp.tipo_operacion %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+        <div><label>Estado</label>
+          <select name="estado">{% for k, v in cat.ESTADOS_EXPEDIENTE.items() %}<option value="{{ k }}" {% if k == exp.estado %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      </div>
+      <label>Colaborador</label><input type="text" name="colaborador" value="{{ exp.colaborador }}" list="colaboradores">
+      <datalist id="colaboradores">{% for c in colaboradores %}<option value="{{ c }}">{% endfor %}</datalist>
+      <label>Correos de contacto (asociación de correos entrantes)</label><input type="text" name="emails_contacto" value="{{ exp.emails_contacto }}">
+      <label>Notas internas</label><textarea name="notas">{{ exp.notas }}</textarea>
+      <p><button type="submit">Guardar</button></p>
+    </form>
+    <p class="suave peq">Para asociar correos con seguridad, pide al cliente que incluya <strong>{{ exp.referencia }}</strong> en el asunto.</p>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Titulares</h2>
+    {% for t in titulares %}
+    <details {% if loop.first and titulares|length == 1 %}{% endif %}>
+      <summary>{{ t.nombre }} · {{ cat.PERFILES_LABORALES.get(t.perfil_laboral) }} · {{ t.dni_nie or "sin DNI" }}</summary>
+      <form class="bloque" method="post" action="/titulares/{{ t.id }}/editar">
+        <label>Nombre y apellidos</label><input type="text" name="nombre" value="{{ t.nombre }}" required>
+        <div class="campos-fila">
+          <div><label>Perfil laboral</label><select name="perfil_laboral">{% for k, v in cat.PERFILES_LABORALES.items() %}<option value="{{ k }}" {% if k == t.perfil_laboral %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+          <div><label>DNI / NIE</label><input type="text" name="dni_nie" value="{{ t.dni_nie }}"></div>
+          <div><label>Correo</label><input type="email" name="email" value="{{ t.email }}"></div>
+        </div>
+        <p><button class="sec" type="submit">Guardar titular</button></p>
+      </form>
+    </details>
+    {% else %}<p class="suave">Sin titulares. Añade al menos uno para evaluar la documentación.</p>{% endfor %}
+    <h3>Añadir titular</h3>
+    <form class="bloque" method="post" action="/expedientes/{{ exp.id }}/titulares">
+      <div class="campos-fila">
+        <div><label>Nombre y apellidos</label><input type="text" name="nombre" required></div>
+        <div><label>Perfil laboral</label><select name="perfil_laboral">{% for k, v in cat.PERFILES_LABORALES.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="campos-fila">
+        <div><label>DNI / NIE</label><input type="text" name="dni_nie"></div>
+        <div><label>Correo</label><input type="email" name="email"></div>
+      </div>
+      <p><button type="submit">Añadir</button></p>
+    </form>
+  </div>
+</div>
+
+<div class="rejilla">
+  <div class="tarjeta"><div class="suave">Documentos</div><div class="cifra">{{ documentos|length }}</div></div>
+  <div class="tarjeta"><div class="suave">Requisitos pendientes</div><div class="cifra">{{ ev.pendientes|length }} / {{ ev.items|length }}</div>
+    <a href="/expedientes/{{ exp.id }}?pestana=checklist">Ver checklist</a></div>
+  <div class="tarjeta"><div class="suave">Datos pendientes de confirmar</div><div class="cifra">{{ a.pendientes_confirmar|length }}</div>
+    <a href="/expedientes/{{ exp.id }}?pestana=datos">Revisar datos</a></div>
+  <div class="tarjeta"><div class="suave">Cuota estimada · endeudamiento</div>
+    <div class="cifra">{{ a.resultado.cuota|euros }}</div>
+    <div class="suave">{{ a.resultado.endeudamiento_con_hipoteca|pct }} de endeudamiento</div></div>
+</div>
+{% if ev.incoherencias %}
+<div class="tarjeta"><h2>Incoherencias detectadas</h2>
+  <ul>{% for i in ev.incoherencias %}<li><span class="etq etq-{{ 'error' if i.nivel == 'error' else 'pendiente' }}">{{ i.nivel }}</span> {{ i.mensaje }}</li>{% endfor %}</ul>
+</div>
+{% endif %}

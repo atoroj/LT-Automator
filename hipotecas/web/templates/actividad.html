@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Registro de actividad</h1>
+<p class="suave">Últimos 500 eventos. El registro no contiene el texto de los documentos.</p>
+<table>
+  <tr><th>Fecha</th><th>Evento</th><th>Expediente</th><th>Documento</th><th>Detalle</th></tr>
+  {% for a in actividad %}
+  <tr><td>{{ a.fecha|fecha_hora }}</td><td>{{ a.tipo }}</td>
+    <td>{% if a.expediente_id %}<a href="/expedientes/{{ a.expediente_id }}">{{ a.referencia }}</a>{% endif %}</td>
+    <td>{% if a.documento_id %}<a href="/documentos/{{ a.documento_id }}">#{{ a.documento_id }}</a>{% endif %}</td>
+    <td class="peq">{{ a.detalle }}</td></tr>
+  {% else %}<tr><td colspan="5" class="suave">Sin actividad.</td></tr>{% endfor %}
+</table>
+{% endblock %}

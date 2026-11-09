@@ -1,0 +1,38 @@
+# --- Datos de clientes y secretos: NUNCA al control de versiones ---
+datos/
+config.toml
+credentials.json
+client_secret*.json
+token*.json
+*.token
+*.bin
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.log
+.env
+.env.*
+
+# Documentos sueltos que pudieran copiarse por error al repositorio
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.docx
+*.eml
+# Excepción: documentos ficticios generados para pruebas (se regeneran con un script)
+!ejemplos/documentos_ficticios/*
+!ejemplos/correos_ficticios/*
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.egg-info/

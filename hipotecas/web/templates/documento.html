@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block titulo %}Documento #{{ doc.id }}{% endblock %}
+{% block contenido %}
+<p>{% if exp %}<a href="/expedientes/{{ exp.id }}?pestana=documentos">← {{ exp.referencia }} — {{ exp.nombre }}</a>{% else %}<a href="/incidencias">← Bandeja de incidencias</a>{% endif %}</p>
+<h1>Documento #{{ doc.id }} · {{ doc.nombre_original }}</h1>
+
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h2>Procedencia y estado</h2>
+    <table>
+      <tr><td>Estado</td><td><span class="etq etq-{{ doc.estado }}">{{ cat.ESTADOS_DOCUMENTO.get(doc.estado, doc.estado) }}</span>
+        {% if doc.duplicado_de %} duplicado de <a href="/documentos/{{ doc.duplicado_de }}">#{{ doc.duplicado_de }}</a>{% endif %}</td></tr>
+      <tr><td>Procedencia</td><td>{{ {"gmail": "Gmail", "eml": "Correo .eml", "subida_manual": "Subida manual", "carpeta": "Carpeta de entrada"}.get(doc.origen, doc.origen) }}</td></tr>
+      {% if doc.remitente %}<tr><td>Remitente</td><td>{{ doc.remitente }}</td></tr>{% endif %}
+      {% if doc.asunto %}<tr><td>Asunto</td><td>{{ doc.asunto }}</td></tr>{% endif %}
+      {% if doc.fecha_correo %}<tr><td>Fecha del correo</td><td>{{ doc.fecha_correo|fecha_hora }}</td></tr>{% endif %}
+      {% if doc.gmail_mensaje_id %}<tr><td>ID del mensaje</td><td class="peq">{{ doc.gmail_mensaje_id }}</td></tr>{% endif %}
+      <tr><td>Recibido</td><td>{{ doc.fecha_recepcion|fecha_hora }}</td></tr>
+      <tr><td>SHA-256</td><td class="peq">{{ doc.sha256 }}</td></tr>
+      <tr><td>Tamaño · páginas</td><td>{{ (doc.tamano / 1024)|round(1) }} KB · {{ doc.num_paginas or "—" }} · texto: {{ doc.metodo_texto or "—" }}</td></tr>
+      <tr><td>Original (inalterable)</td><td><a href="/documentos/{{ doc.id }}/archivo/original" target="_blank" rel="noopener">Ver</a> ·
+        <a href="/documentos/{{ doc.id }}/archivo/original?descargar=1">Descargar</a><div class="peq suave">{{ doc.ruta_original }}</div></td></tr>
+      {% if doc.ruta_trabajo %}<tr><td>Copia de trabajo</td><td><a href="/documentos/{{ doc.id }}/archivo/trabajo" target="_blank" rel="noopener">Ver</a>
+        <div class="peq suave">{{ doc.ruta_trabajo }}</div></td></tr>{% endif %}
+    </table>
+    {% if duplicados %}<h3>Recibido también como duplicado</h3>
+      <ul class="peq">{% for d in duplicados %}<li><a href="/documentos/{{ d.id }}">#{{ d.id }}</a> {{ d.origen }} {{ d.remitente or "" }} · {{ d.fecha_recepcion|fecha_hora }}</li>{% endfor %}</ul>{% endif %}
+    {% if incidencias %}<h3>Incidencias</h3>
+      <ul>{% for i in incidencias %}<li><span class="etq etq-{{ i.estado }}">{{ i.estado }}</span> {{ i.descripcion }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+
+  {% if exp %}
+  <div class="tarjeta">
+    <h2>Clasificación y revisión</h2>
+    <form class="bloque" method="post" action="/documentos/{{ doc.id }}/editar">
+      <label>Tipo de documento</label>
+      <select name="tipo_documento">{% for k, v in cat.TIPOS_DOCUMENTO.items() %}<option value="{{ k }}" {% if k == doc.tipo_documento %}selected{% endif %}>{{ v[0] }} ({{ cat.CATEGORIAS[v[1]] }})</option>{% endfor %}</select>
+      <label>Titular</label>
+      <select name="titular_id"><option value="">— Sin titular / de la operación —</option>
+        {% for t in titulares %}<option value="{{ t.id }}" {% if t.id == doc.titular_id %}selected{% endif %}>{{ t.nombre }}</option>{% endfor %}</select>
+      <div class="campos-fila">
+        <div><label>Fecha del documento</label><input type="date" name="fecha_documento" value="{{ doc.fecha_documento or '' }}"></div>
+        <div><label>Estado</label><select name="estado">
+          <option value="">(sin cambio)</option>
+          <option value="revisado" {% if doc.estado == "revisado" %}selected{% endif %}>Revisado</option>
+          <option value="procesado" {% if doc.estado == "procesado" %}selected{% endif %}>Pendiente de revisión</option>
+          <option value="descartado" {% if doc.estado == "descartado" %}selected{% endif %}>Descartado (no usar; no se borra)</option>
+        </select></div>
+      </div>
+      <label><input type="checkbox" name="marcado_incompleto" value="1" {% if doc.marcado_incompleto %}checked{% endif %}> Documento incompleto (faltan páginas, recortado…)</label>
+      <label>Notas</label><textarea name="notas">{{ doc.notas }}</textarea>
+      <p><button type="submit">Guardar</button></p>
+    </form>
+    {% if doc.estado == "pendiente_analisis" %}<div class="aviso aviso-info">Pendiente de análisis con IA. Puedes clasificarlo y añadir sus datos
+      a mano, o pulsar «Reprocesar» cuando la IA esté disponible (ver <a href="/ia">IA</a>).</div>{% endif %}
+    {% if doc.estado != "duplicado" %}
+    <form method="post" action="/documentos/{{ doc.id }}/reprocesar"><button class="sec" type="submit">Reprocesar (texto y análisis con IA)</button></form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if exp %}
+<div class="tarjeta">
+  <div class="cabecera-exp"><h2>Datos extraídos de este documento</h2>
+    {% if campos|selectattr("estado", "equalto", "pendiente_confirmar")|list %}
+    <form method="post" action="/expedientes/{{ exp.id }}/datos/confirmar-documento">
+      <input type="hidden" name="documento_id" value="{{ doc.id }}">
+      <button type="submit">Confirmar todos los pendientes (tras revisar)</button></form>{% endif %}
+  </div>
+  <table>
+    <tr><th>Dato</th><th>Valor</th><th>Estado</th><th>Pág.</th><th>Evidencia</th><th>Acciones</th></tr>
+    {% for c in campos %}{% set info = cat.CAMPOS.get(c.clave) %}
+    <tr><td>{{ info[0] if info else c.clave }}</td><td class="num">{{ valor_campo(info[1] if info else "texto", c.valor) }}</td>
+      <td><span class="etq etq-{{ c.estado }}">{{ cat.ESTADOS_CAMPO.get(c.estado) }}</span></td><td>{{ c.pagina or "—" }}</td>
+      <td class="peq suave">{{ c.evidencia }}</td>
+      <td>{% if c.estado == "pendiente_confirmar" %}<form class="linea" method="post" action="/campos/{{ c.id }}/confirmar">
+          <input type="hidden" name="volver" value="/documentos/{{ doc.id }}"><button class="mini" type="submit">Confirmar</button></form>{% endif %}
+        {% if c.estado != "descartado" %}<form class="linea" method="post" action="/campos/{{ c.id }}/descartar">
+          <input type="hidden" name="volver" value="/documentos/{{ doc.id }}"><button class="mini sec" type="submit">Descartar</button></form>
+        <details><summary class="peq">Corregir</summary><form method="post" action="/campos/{{ c.id }}/corregir">
+          <input type="hidden" name="volver" value="/documentos/{{ doc.id }}"><input type="text" name="valor" value="{{ c.valor }}" required>
+          <input type="text" name="nota" placeholder="Nota"><button class="mini" type="submit">Guardar</button></form></details>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="6" class="suave">No se han extraído datos de este documento.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2>Texto extraído</h2>
+  {% for p in paginas %}
+  <h3>Página {{ p.pagina }} <span class="suave peq">({{ p.metodo }})</span></h3>
+  <div class="texto-doc">{{ p.texto or "(sin texto)" }}</div>
+  {% else %}<p class="suave">Sin texto extraído.</p>{% endfor %}
+</div>
+
+<div class="tarjeta">
+  <h2>Acciones registradas</h2>
+  <table>{% for a in actividad %}<tr><td>{{ a.fecha|fecha_hora }}</td><td>{{ a.tipo }}</td><td class="peq">{{ a.detalle }}</td></tr>
+  {% else %}<tr><td class="suave">Sin actividad.</td></tr>{% endfor %}</table>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Nuevo expediente</h1>
+<form class="tarjeta bloque" method="post" action="/expedientes/nuevo">
+  <div class="rejilla-2">
+    <div>
+      <label>Nombre del expediente *</label><input type="text" name="nombre" required placeholder="p. ej. Compra piso calle Ficticia">
+      <label>Tipo de operación *</label>
+      <select name="tipo_operacion">{% for k, v in cat.TIPOS_OPERACION.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+      <label>Colaborador</label><input type="text" name="colaborador" list="colaboradores" placeholder="Propio">
+      <datalist id="colaboradores">{% for c in colaboradores %}<option value="{{ c }}">{% endfor %}</datalist>
+      <p class="suave peq">Agrupa el expediente y su carpeta (02 - EXPEDIENTES\Colaborador\…). Vacío = «Propio».</p>
+      <label>Correos de contacto del cliente</label><input type="text" name="emails_contacto" placeholder="cliente@ejemplo.com, otro@ejemplo.com">
+      <p class="suave peq">Los correos con adjuntos que lleguen desde estas direcciones se recogen y asocian automáticamente a este expediente (si no coinciden con ningún otro).</p>
+      <label>Notas internas</label><textarea name="notas"></textarea>
+    </div>
+    <div>
+      <h3>Primer titular (opcional)</h3>
+      <label>Nombre y apellidos</label><input type="text" name="titular_nombre">
+      <label>Perfil laboral</label>
+      <select name="titular_perfil">{% for k, v in cat.PERFILES_LABORALES.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+      <label>DNI / NIE</label><input type="text" name="titular_dni">
+      <label>Correo del titular</label><input type="email" name="titular_email">
+    </div>
+  </div>
+  <p><button type="submit">Crear expediente</button></p>
+</form>
+{% endblock %}

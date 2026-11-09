@@ -1,0 +1,45 @@
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <h2>Generar borrador</h2>
+    <p>El borrador recoge los datos actuales del expediente, la simulación, los ratios, la documentación pendiente y las cuestiones por confirmar.
+      Se guarda como DOCX y PDF en la carpeta de informes del expediente. <strong>No se envía a nadie.</strong></p>
+    {% if ev.pendientes %}<div class="aviso aviso-info">Hay {{ ev.pendientes|length }} requisito(s) documentales sin completar; aparecerán en el informe.</div>{% endif %}
+    <form method="post" action="/expedientes/{{ exp.id }}/informes"><button type="submit">Generar nuevo borrador</button></form>
+  </div>
+  <div class="tarjeta">
+    <h2>Observaciones para el informe</h2>
+    <form class="bloque" method="post" action="/expedientes/{{ exp.id }}/observaciones">
+      <textarea name="observaciones_informe" placeholder="Valoración profesional, contexto, puntos fuertes y débiles…">{{ exp.observaciones_informe }}</textarea>
+      <p><button class="sec" type="submit">Guardar observaciones</button></p>
+    </form>
+  </div>
+</div>
+
+<h2>Versiones</h2>
+<table>
+  <tr><th>Versión</th><th>Estado</th><th>Creado</th><th>Aprobado</th><th>Archivos</th><th>Aprobación</th></tr>
+  {% for i in informes %}
+  <tr>
+    <td>v{{ i.version }}</td>
+    <td><span class="etq etq-{{ i.estado }}">{{ i.estado }}</span></td>
+    <td>{{ i.creado|fecha_hora }}</td>
+    <td>{{ i.aprobado_en|fecha_hora }}{% if i.nota_aprobacion %}<div class="peq suave">{{ i.nota_aprobacion }}</div>{% endif %}</td>
+    <td><a href="/informes/{{ i.id }}/docx">DOCX</a> · <a href="/informes/{{ i.id }}/pdf">PDF</a>
+      <div class="peq suave">SHA-256 PDF {{ i.sha256_pdf[:12] }}…</div></td>
+    <td>
+      {% if i.estado == "borrador" and loop.first %}
+      <details><summary>Aprobar este informe</summary>
+        <form class="bloque" method="post" action="/informes/{{ i.id }}/aprobar">
+          <label><input type="checkbox" name="revisado" value="si" required> He revisado el borrador completo y autorizo su versión definitiva</label>
+          <label>Escribe la referencia del expediente ({{ exp.referencia }}) para confirmar</label>
+          <input type="text" name="referencia" required autocomplete="off">
+          <label>Nota de aprobación (opcional)</label><input type="text" name="nota">
+          <p><button type="submit">Aprobar informe definitivo</button></p>
+        </form>
+      </details>
+      {% elif i.estado == "borrador" %}<span class="suave peq">Hay una versión más reciente</span>
+      {% else %}—{% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="suave">Todavía no se ha generado ningún informe.</td></tr>{% endfor %}
+</table>

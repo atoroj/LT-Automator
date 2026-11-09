@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}{{ exp.referencia }} · Expedientes{% endblock %}
+{% block contenido %}
+<div class="cabecera-exp">
+  <div>
+    <h1>{{ exp.referencia }} — {{ exp.nombre }}</h1>
+    <div class="suave">{{ cat.TIPOS_OPERACION.get(exp.tipo_operacion) }} ·
+      <span class="etq etq-{{ exp.estado }}">{{ cat.ESTADOS_EXPEDIENTE.get(exp.estado) }}</span> ·
+      colaborador <strong>{{ exp.colaborador }}</strong></div>
+    <div class="suave peq">Entrada: <code>{{ dir_entrada }}</code> · Expediente: <code>{{ exp.carpeta }}</code></div>
+  </div>
+</div>
+{% if incidencias %}
+<div class="aviso aviso-error">{{ incidencias|length }} incidencia(s) abierta(s) en este expediente:
+  <ul>{% for i in incidencias %}<li>{{ i.descripcion }}</li>{% endfor %}</ul>
+  <a href="/incidencias">Ir a la bandeja de incidencias</a></div>
+{% endif %}
+
+<nav class="pestanas">
+  {% for k, v in [("resumen","Resumen"),("documentos","Documentos"),("datos","Datos extraídos"),("checklist","Checklist"),("calculos","Cálculos"),("informes","Informes"),("actividad","Actividad")] %}
+  <a href="/expedientes/{{ exp.id }}?pestana={{ k }}" class="{% if pestana == k %}activa{% endif %}">{{ v }}</a>
+  {% endfor %}
+</nav>
+
+{% if pestana == "resumen" %}{% include "_exp_resumen.html" %}
+{% elif pestana == "documentos" %}{% include "_exp_documentos.html" %}
+{% elif pestana == "datos" %}{% include "_exp_datos.html" %}
+{% elif pestana == "checklist" %}{% include "_exp_checklist.html" %}
+{% elif pestana == "calculos" %}{% include "_exp_calculos.html" %}
+{% elif pestana == "informes" %}{% include "_exp_informes.html" %}
+{% elif pestana == "actividad" %}{% include "_exp_actividad.html" %}
+{% endif %}
+{% endblock %}
