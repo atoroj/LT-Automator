@@ -94,3 +94,11 @@ def test_volver_no_permite_redireccion_externa(cliente, cfg):
     for malo in ("//evil.example", "/\\evil.example", "https://evil.example"):
         r = cliente.post(f"/campos/{cid}/descartar", headers=ORIGEN, data={"volver": malo}, follow_redirects=False)
         assert r.headers["location"].startswith(f"/expedientes/{exp_id}"), malo
+
+
+def test_la_clave_de_ia_no_se_introduce_por_la_web(cliente):
+    for ruta in ("/ia/clave", "/ia/clave/eliminar"):
+        r = cliente.post(ruta, data={"clave": "sk-ant-" + "x" * 30}, headers=ORIGEN, follow_redirects=False)
+        assert r.status_code in (404, 405)
+    pagina = cliente.get("/ia").text
+    assert 'name="clave"' not in pagina and "secreto" in pagina

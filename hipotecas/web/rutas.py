@@ -17,7 +17,6 @@ from ..checklist import requisitos as reqs
 from ..checklist.evaluador import evaluar
 from ..db import conectar, todos, transaccion, uno
 from ..documentos import procesamiento
-from ..extraccion import clave_api
 from ..extraccion.servicio import estado_ia
 from ..gmail.conector import GmailNoConfigurado, almacen, guardar_credenciales, ruta_credenciales
 from ..gmail.almacen_token import PROTECCION
@@ -581,23 +580,6 @@ def pagina_ia(request: Request, conn: Conn):
         envios=todos(conn, "SELECT a.*, e.referencia FROM actividad a LEFT JOIN expedientes e ON e.id=a.expediente_id "
                            "WHERE a.tipo IN ('extraccion_ia_externa','extraccion_ia_cache') ORDER BY a.id DESC LIMIT 50"),
     )
-
-
-@router.post("/ia/clave")
-def guardar_clave(request: Request, conn: Conn, clave: Texto):
-    try:
-        clave_api.guardar(request.app.state.cfg, clave)
-    except ValueError as e:
-        return redirigir("/ia", error=str(e))
-    registrar(conn, "ia_clave_guardada", "clave de API guardada cifrada (DPAPI)")
-    return redirigir("/ia", ok="Clave guardada cifrada en este equipo")
-
-
-@router.post("/ia/clave/eliminar")
-def eliminar_clave(request: Request, conn: Conn):
-    clave_api.eliminar(request.app.state.cfg)
-    registrar(conn, "ia_clave_eliminada")
-    return redirigir("/ia", ok="Clave eliminada de este equipo")
 
 
 @router.post("/ia/probar")

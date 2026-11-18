@@ -23,13 +23,12 @@
   </div>
   <div class="tarjeta">
     <h2>Clave de API</h2>
-    <p class="suave peq">Se guarda cifrada con DPAPI en <code>datos\secretos</code>: solo tu usuario de Windows puede leerla. No se muestra nunca
-      y no se guarda en config.toml. Si existe la variable de entorno ANTHROPIC_API_KEY, tiene prioridad.</p>
-    <form class="bloque" method="post" action="/ia/clave">
-      <label>Nueva clave</label><input type="password" name="clave" autocomplete="off" required>
-      <p><button type="submit">Guardar clave</button></p>
-    </form>
-    {% if estado.clave %}<form method="post" action="/ia/clave/eliminar"><button class="sec" type="submit">Eliminar clave guardada</button></form>{% endif %}
+    <p class="suave peq">La clave se lee de un <strong>secreto</strong>, nunca desde esta pantalla, y no se muestra nunca.
+      Por orden: el archivo indicado en <code>ANTHROPIC_API_KEY_FILE</code> o en <code>[ia] archivo_clave</code>;
+      en el servidor, el secreto de Docker <code>/run/secrets/anthropic_api_key</code> (archivo
+      <code>servidor/secretos/anthropic_api_key</code>); y, por último, la variable de entorno <code>ANTHROPIC_API_KEY</code>.
+      Después de cambiarla, reinicia la aplicación.</p>
+    <p class="peq">Origen actual: {{ estado.origen_clave }}</p>
 
     <h2>Probar con un texto ficticio</h2>
     <p class="suave peq">Envía exactamente este texto inventado (no contiene datos de clientes):</p>

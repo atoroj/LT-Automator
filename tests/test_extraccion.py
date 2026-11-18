@@ -114,19 +114,44 @@ def test_ia_desactivada_por_defecto(cfg, monkeypatch):
     assert p is None and "clave" in desc.lower()
 
 
-def test_clave_api_cifrada(cfg, monkeypatch):
-    import sys
-
+def test_clave_api_desde_secreto(cfg, monkeypatch, tmp_path):
     from hipotecas.extraccion import clave_api
 
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    clave_api.guardar(cfg, "sk-ant-clave-ficticia-de-prueba-0000000000")
+    monkeypatch.delenv("ANTHROPIC_API_KEY_FILE", raising=False)
+    monkeypatch.setattr(clave_api, "SECRETO_DOCKER", tmp_path / "no_existe")
+    assert clave_api.obtener(cfg) == (None, "no configurada")
+
+    # Variable de entorno
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-clave-de-variable-000000000000")
     clave, origen = clave_api.obtener(cfg)
-    assert clave == "sk-ant-clave-ficticia-de-prueba-0000000000" and "DPAPI" in origen
-    if sys.platform == "win32":
-        assert b"clave-ficticia" not in clave_api.almacen(cfg).ruta.read_bytes()
-    clave_api.eliminar(cfg)
-    assert clave_api.obtener(cfg)[0] is None
+    assert clave == "sk-ant-clave-de-variable-000000000000" and "variable" in origen
+    assert "sk-ant" not in origen
+
+    # El archivo de secreto tiene prioridad sobre la variable (con salto de línea final)
+    secreto = tmp_path / "anthropic_api_key"
+    secreto.write_text("sk-ant-clave-de-archivo-0000000000000\n", encoding="utf-8")
+    monkeypatch.setenv("ANTHROPIC_API_KEY_FILE", str(secreto))
+    clave, origen = clave_api.obtener(cfg)
+    assert clave == "sk-ant-clave-de-archivo-0000000000000" and "archivo de secreto" in origen
+
+    # Secreto por defecto de Docker, sin indicar ruta
+    monkeypatch.delenv("ANTHROPIC_API_KEY_FILE")
+    monkeypatch.delenv("ANTHROPIC_API_KEY")
+    monkeypatch.setattr(clave_api, "SECRETO_DOCKER", secreto)
+    assert clave_api.obtener(cfg)[0] == "sk-ant-clave-de-archivo-0000000000000"
+
+    # Ruta en config.toml que no existe, o archivo vacío o no válido: sin clave y con el motivo
+    cfg.datos["ia"]["archivo_clave"] = str(tmp_path / "falta")
+    clave, origen = clave_api.obtener(cfg)
+    assert clave is None and "no existe" in origen
+    vacio = tmp_path / "vacio"
+    vacio.write_text("", encoding="utf-8")
+    cfg.datos["ia"]["archivo_clave"] = str(vacio)
+    assert clave_api.obtener(cfg) == (None, f"el archivo de secreto {vacio} está vacío")
+    vacio.write_text("no es una clave", encoding="utf-8")
+    clave, origen = clave_api.obtener(cfg)
+    assert clave is None and "no contiene una clave válida" in origen
 
 
 def test_config_antigua_local_no_rompe(cfg):

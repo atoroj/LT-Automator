@@ -2,7 +2,7 @@
 
 Se activa solo con configuración explícita (config.toml):
     [ia] proveedor = "anthropic"  y  permitir_envio_externo = true
-y una clave de API (variable de entorno ANTHROPIC_API_KEY o guardada cifrada desde la pantalla «IA»).
+y una clave de API leída de un secreto (archivo o variable de entorno; ver clave_api.py).
 
 Qué sale del ordenador (y nada más):
 - El texto extraído de las páginas del documento (hasta `max_caracteres_texto`), con los IBAN,

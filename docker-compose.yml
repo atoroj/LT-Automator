@@ -1,7 +1,8 @@
 # Despliegue en el servidor. Todo lo propio del servidor vive en ./servidor (excluido de git):
 #   servidor/config.toml   configuración (copiada de despliegue/config.servidor.example.toml)
 #   servidor/.env          variables (copiada de despliegue/env.example)
-#   servidor/datos/        base de datos, expedientes, secretos y copias
+#   servidor/secretos/     secretos de Docker (anthropic_api_key), permisos 600
+#   servidor/datos/        base de datos, expedientes, token de Gmail y copias
 #   servidor/rclone/       conexión con Google Drive (rclone.conf)
 # Guía completa: DESPLIEGUE.md
 
@@ -12,6 +13,8 @@ services:
     container_name: gestor-hipotecario
     restart: unless-stopped
     env_file: ./servidor/.env
+    secrets:
+      - anthropic_api_key   # se lee en /run/secrets/anthropic_api_key
     volumes:
       - ./servidor/datos:/datos
       - ./servidor/config.toml:/config/config.toml:ro
@@ -33,3 +36,8 @@ services:
       - ./servidor/rclone:/config/rclone
       - ./despliegue/sincronizar_drive.sh:/scripts/sincronizar_drive.sh:ro
       - ./despliegue/restaurar_desde_drive.sh:/scripts/restaurar_desde_drive.sh:ro
+
+secrets:
+  anthropic_api_key:
+    # Una sola línea con la clave de API de Anthropic. No entra en la imagen, ni en .env, ni en Drive.
+    file: ./servidor/secretos/anthropic_api_key

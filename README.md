@@ -186,8 +186,15 @@ La clasificación de documentos y la extracción de datos se hacen **exclusivame
 
 1. Crea una clave de API en <https://console.anthropic.com/> (*API Keys*). El uso se factura por consumo.
 2. En `config.toml`, bloque `[ia]`, pon `permitir_envio_externo = true` (es tu consentimiento explícito para enviar texto fuera del ordenador). Si tu `config.toml` es anterior a este cambio y tiene `proveedor = "local"`, sustituye el bloque `[ia]` completo por el de `config.example.toml`.
-3. Reinicia la aplicación y abre la pantalla **IA**: pega la clave en *Guardar clave* (se guarda cifrada con DPAPI y no se vuelve a mostrar). Alternativa: variable de entorno `ANTHROPIC_API_KEY`.
+3. Guarda la clave como **secreto** (no se introduce por la web). En el PC, la forma más sencilla es una variable de entorno de tu usuario de Windows. En PowerShell, pega la clave cuando la pida:
+   ```powershell
+   $c = Read-Host "Clave de API" -AsSecureString
+   [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", [Net.NetworkCredential]::new("", $c).Password, "User")
+   ```
+   Alternativa: un archivo con la clave en una línea, fuera del proyecto, indicado en `[ia] archivo_clave` o en la variable `ANTHROPIC_API_KEY_FILE`. En el servidor es el secreto de Docker `servidor/secretos/anthropic_api_key` (ver `DESPLIEGUE.md`).
+   Cierra y vuelve a abrir la terminal, reinicia la aplicación y comprueba el origen de la clave en la pantalla **IA**.
 4. Pulsa **Enviar prueba**: manda un texto de nómina inventado y muestra el tipo y los datos detectados.
+   Para probar el proceso completo con correos reales (Gmail → documentos → clasificación → datos) sin tocar tus datos, usa `scripts\prueba_real.py` (instrucciones al principio del script).
 5. Si ya tenías documentos *pendientes de análisis*, pulsa **Analizar pendientes**.
 
 **Mientras la IA no esté activada (o si falla):** los documentos se reciben, se guardan y se extrae su texto igualmente, pero quedan **«Pendiente de análisis»**, sin clasificar y sin datos. Puedes clasificarlos y anotar los datos a mano, o esperar: se reintentan con *Analizar pendientes*, con *Reprocesar* en cada documento y automáticamente en cada sincronización de Gmail. Si la IA falla con un documento concreto, se abre una incidencia «No se pudo analizar con IA». Nunca se clasifica ni se rellena nada por suposición.
@@ -287,7 +294,7 @@ La aplicación **no envía** informes a nadie. Para compartirlos, adjunta tú mi
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Cubren cálculos financieros, seguridad de rutas y configuración, cifrado del token y de la clave de API, la extracción con IA mediante un cliente simulado (sin red: verificación de citas, descarte de datos inventados, caché, seudonimización, fallos y reintentos), el flujo completo (correos, asociación, duplicados, incidencias, checklist, cálculos, informe y aprobación), el conector de Gmail con un servicio simulado (solo etiqueta, sin reprocesar, reintentos) y la interfaz web (incluidas las protecciones locales).
+Cubren cálculos financieros, seguridad de rutas y configuración, cifrado del token, lectura de la clave de API desde un secreto, la extracción con IA mediante un cliente simulado (sin red: verificación de citas, descarte de datos inventados, caché, seudonimización, fallos y reintentos), el flujo completo (correos, asociación, duplicados, incidencias, checklist, cálculos, informe y aprobación), el conector de Gmail con un servicio simulado (solo etiqueta, sin reprocesar, reintentos) y la interfaz web (incluidas las protecciones locales).
 
 ## Comprobación manual del flujo con datos ficticios
 
@@ -336,7 +343,7 @@ hipotecas/
   carpeta_entrada.py     vigilancia de 00 - ENTRADA
   incidencias.py         bandeja de incidencias
   documentos/            formato, texto PDF, OCR local y procesamiento
-  extraccion/            interfaz de proveedor de IA, proveedor Anthropic, clave cifrada y normalización de valores
+  extraccion/            interfaz de proveedor de IA, proveedor Anthropic, clave desde secreto y normalización de valores
   datos.py               datos con estado y trazabilidad
   checklist/             requisitos configurables, vigencias y coherencia
   finanzas.py            cálculos deterministas (Decimal)

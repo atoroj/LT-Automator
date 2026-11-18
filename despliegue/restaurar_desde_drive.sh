@@ -31,4 +31,4 @@ fi
 echo "Restaurando base de datos: $ULTIMA"
 rclone copyto "$DESTINO/.copias_bd/$ULTIMA" /datos/hipotecas.db
 echo "Hecho. Arranca la aplicación con: docker compose up -d"
-echo "Después vuelve a guardar la clave de IA y a conectar Gmail (los secretos no se copian a Drive)."
+echo "Después vuelve a escribir la clave de IA en servidor/secretos/anthropic_api_key y a conectar Gmail (los secretos no se copian a Drive)."

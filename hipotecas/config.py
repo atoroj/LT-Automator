@@ -59,6 +59,9 @@ DEFECTO: dict = {
     "ia": {
         "proveedor": "anthropic",
         "permitir_envio_externo": False,
+        # Archivo con la clave de API (secreto). Vacío: ANTHROPIC_API_KEY_FILE, /run/secrets/anthropic_api_key
+        # o la variable ANTHROPIC_API_KEY. Ver extraccion/clave_api.py.
+        "archivo_clave": "",
         "modelo": "claude-opus-5-5",
         "esfuerzo": "medium",
         "max_caracteres_texto": 15000,

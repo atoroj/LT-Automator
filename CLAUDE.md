@@ -24,7 +24,10 @@ resolver incidencias, validar datos y aprobar el informe definitivo.
 .\.venv\Scripts\python.exe -m hipotecas --sin-navegador        # arrancar (http://127.0.0.1:8765)
 .\.venv\Scripts\python.exe -m hipotecas --config RUTA\config.toml   # con otra configuración (pruebas manuales)
 .\.venv\Scripts\python.exe scripts\generar_documentos_ficticios.py --referencia EXP-2026-0001
+.\.venv\Scripts\python.exe scripts\prueba_real.py --etiqueta "Hipotecas/Prueba" --expediente "Prueba real" --emails CORREO
 ```
+
+`prueba_real.py` lo ejecuta la usuaria (Gmail y API reales, en una carpeta aislada fuera del proyecto: `%LOCALAPPDATA%\GestorHipotecario\prueba-real`). Su salida por defecto no lleva datos personales; no le pidas `--mostrar-valores` para pegarla aquí.
 
 Para probar en vivo usa una configuración temporal con otro puerto y otra carpeta de datos; nunca la de la usuaria.
 
@@ -57,7 +60,7 @@ Docker Desktop no arranca en su PC: la imagen no se ha podido construir localmen
 ## Invariantes (no romper)
 
 - **Nunca expuesto a Internet.** En el PC escucha en 127.0.0.1. En Docker (`HIPOTECAS_CONTENEDOR=1`) escucha en 0.0.0.0 dentro del contenedor, pero compose solo publica `127.0.0.1:8765` y el acceso es por `tailscale serve`. El middleware `ProteccionLocal` valida Host y Origin/Referer (http/https) contra loopback y `[servidor] hosts_permitidos`.
-- **Secretos:** en Windows, cifrados con DPAPI; en Linux, archivo con permisos 600 en el volumen. Gmail se autoriza con `AutorizacionGmail` (redirección a `http://127.0.0.1:<puerto>/`: en el PC vuelve sola; en el servidor se pega la URL). No se copian a Drive.
+- **Secretos:** token de Gmail: en Windows, cifrado con DPAPI; en Linux, archivo con permisos 600 en el volumen. **Clave de IA: solo desde un secreto** (`ANTHROPIC_API_KEY_FILE`, `[ia] archivo_clave`, `/run/secrets/anthropic_api_key` = `servidor/secretos/anthropic_api_key` en compose, o `ANTHROPIC_API_KEY`); la interfaz no permite introducirla. Gmail se autoriza con `AutorizacionGmail` (redirección a `http://127.0.0.1:<puerto>/`: en el PC vuelve sola; en el servidor se pega la URL). No se copian a Drive.
 - **Drive:** `00 - ENTRADA` va de Drive al servidor (`rclone move`); `02`, `03` y las copias de la BD van del servidor a Drive (`rclone sync` con `--backup-dir .historial`). En Drive esas carpetas son de solo consulta.
 - **Interfaz:** la CSP es estricta: **sin JavaScript ni estilos en línea** (`style=`); usa clases de `static/estilo.css`. Los formularios no pueden redirigir a otros dominios (`form-action 'self'`): para ir a Google se muestra un enlace.
 - **Originales:** se escriben en modo exclusivo, quedan en solo lectura y nunca se sobrescriben ni se borran. Las correcciones solo mueven o renombran la copia de trabajo.
@@ -65,7 +68,7 @@ Docker Desktop no arranca en su PC: la imagen no se ha podido construir localmen
 - **Idempotencia:** `mensajes.mensaje_id` y el índice único `(gmail_mensaje_id, parte_id)`. En la carpeta de entrada, `mensaje_id = carpeta-<sha>-<subcarpeta>`.
 - **No adivinar:** la asociación dudosa va a incidencias; el titular solo se asigna si es inequívoco; sin IA el documento queda `pendiente_analisis`.
 - **Extracción solo con IA, sin reglas** (se eliminaron a petición de la usuaria; no reintroducirlas). La IA solo propone datos `pendiente_confirmar`, y cada dato exige una cita literal comprobada en el texto enviado. Nunca decide créditos ni aprueba informes.
-- **IA:** se envía solo el texto, con IBAN, correos y teléfonos seudonimizados. Se activa con `[ia] permitir_envio_externo = true` y una clave (variable de entorno o DPAPI desde la pantalla IA). Modelo por defecto `claude-opus-5-5`, con salida de esquema JSON, `fallbacks="default"` y caché en la tabla `cache_ia`.
+- **IA:** se envía solo el texto, con IBAN, correos y teléfonos seudonimizados. Se activa con `[ia] permitir_envio_externo = true` y una clave leída de un secreto (`clave_api.py`). Modelo por defecto `claude-opus-5-5`, con salida de esquema JSON, `fallbacks="default"` y caché en la tabla `cache_ia`.
 - **Cálculos:** siempre deterministas (`Decimal`), nunca a cargo del modelo.
 - **Informes:** nunca se envían a terceros. Aprobar exige marcar la casilla y escribir la referencia; los finales se generan desde la misma instantánea `datos_json`.
 - **Logs** (`datos/logs`): solo identificadores y tipos de evento, nunca contenido de documentos. Las acciones relevantes se registran con `actividad.registrar()`.
@@ -75,7 +78,8 @@ Docker Desktop no arranca en su PC: la imagen no se ha podido construir localmen
 
 - `tests/simulador_ia.py`: cliente de IA simulado (sin red). Las fixtures `proveedor_ia` y `cliente_ia` están en `conftest.py`. En la web, se sustituye `app.state.proveedor`.
 - `tests/test_gmail.py`: servicio Gmail falso.
-- La IA real **no se ha probado** contra la API (no había clave). Pendiente de validar con la usuaria desde la pantalla IA.
+- La IA real **no se ha probado** contra la API. Se valida con `scripts/prueba_real.py` (lo ejecuta la usuaria con sus datos).
+- `tests/test_prueba_real.py`: el script con Gmail falso e IA simulada.
 - Ante cada cambio: añadir pruebas y ejecutar toda la batería.
 
 ## Estado y siguientes fases (pendientes de confirmación de la usuaria)
@@ -83,6 +87,7 @@ Docker Desktop no arranca en su PC: la imagen no se ha podido construir localmen
 Hecho: despliegue Docker + Drive + Tailscale preparado (pendiente de que la usuaria lo ejecute en su servidor); recepción automática (Gmail con etiqueta, remitentes de expedientes y búsqueda configurable; carpeta de entrada), estructura `GESTOR HIPOTECARIO`, colaboradores, extracción con IA, checklist, cálculos, informes e interfaz.
 
 Pendiente, por orden propuesto:
+0. **Frontend en Angular** (decidido por la usuaria): FastAPI pasa a API JSON y sirve la SPA compilada; se mantiene la CSP estricta.
 1. Ampliar el catálogo para la IA:
    - Operaciones: inversión, reunificación de deudas.
    - Documentos: certificado de retenciones, más documentación de autónomos.

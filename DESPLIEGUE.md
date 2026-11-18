@@ -19,7 +19,8 @@ Todo lo propio del servidor queda en la carpeta `servidor/`, excluida de git:
 |---|---|
 | `servidor/config.toml` | Configuración |
 | `servidor/.env` | Variables: clave de IA opcional y nombres de Drive |
-| `servidor/datos/` | Base de datos, expedientes, secretos (token de Gmail, clave de IA) y copias diarias de la BD |
+| `servidor/secretos/` | Secreto de Docker con la clave de IA (`anthropic_api_key`) |
+| `servidor/datos/` | Base de datos, expedientes, token de Gmail y copias diarias de la BD |
 | `servidor/rclone/` | Conexión con Google Drive |
 
 ---
@@ -79,9 +80,16 @@ En el **móvil y en el PC**, instala Tailscale e inicia sesión con la misma cue
 
 ## 3. Clave de IA
 
-En la aplicación: pantalla **IA** → pega la clave en *Guardar clave* → **Enviar prueba**. Esa prueba solo manda un texto inventado. La clave queda en `servidor/datos/secretos`, con permisos de solo propietario.
+La clave es un **secreto de Docker**: no se introduce en la web, no va en `.env`, no entra en la imagen y no se copia a Drive. En el servidor:
 
-Alternativa: ponla en `servidor/.env` (`ANTHROPIC_API_KEY=...`) y ejecuta `docker compose up -d`.
+```bash
+cd /opt/gestor
+nano servidor/secretos/anthropic_api_key   # pega la clave en una sola línea y guarda
+chmod 600 servidor/secretos/anthropic_api_key
+docker compose up -d --force-recreate gestor
+```
+
+Dentro del contenedor se lee en `/run/secrets/anthropic_api_key`. Comprueba en la pantalla **IA** que el origen es *archivo de secreto* y pulsa **Enviar prueba** (solo manda un texto inventado). Para cambiar la clave, edita el archivo y repite el último comando.
 
 ## 4. Conectar Google Drive
 
@@ -164,7 +172,7 @@ docker compose up -d
    docker compose run --rm --entrypoint /bin/sh drive /scripts/restaurar_desde_drive.sh
    docker compose up -d
    ```
-3. Vuelve a guardar la clave de IA y a conectar Gmail (los secretos no se copian a Drive).
+3. Vuelve a escribir la clave de IA en `servidor/secretos/anthropic_api_key` y a conectar Gmail (los secretos no se copian a Drive).
 
 ## Actualizar la aplicación
 

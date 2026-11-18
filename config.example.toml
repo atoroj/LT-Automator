@@ -80,11 +80,15 @@ max_intentos_por_mensaje = 5
 # La clasificación y la extracción de datos se hacen con IA (Anthropic).
 # Para activarla hacen falta DOS cosas:
 #   1) permitir_envio_externo = true  (consentimiento explícito para enviar texto fuera del ordenador)
-#   2) la clave de API: pantalla «IA» de la aplicación (se guarda cifrada) o variable de entorno ANTHROPIC_API_KEY.
+#   2) la clave de API, como secreto: archivo en ANTHROPIC_API_KEY_FILE o en archivo_clave (abajo),
+#      /run/secrets/anthropic_api_key en Docker, o la variable de entorno ANTHROPIC_API_KEY.
 # Mientras no esté activada, los documentos se guardan y quedan «pendientes de análisis» (clasificación manual).
 # Durante el desarrollo usa SOLO documentos ficticios o anonimizados.
 proveedor = "anthropic"
 permitir_envio_externo = false
+# Ruta de un archivo con la clave (una línea), FUERA del repositorio. Vacío = ANTHROPIC_API_KEY_FILE,
+# /run/secrets/anthropic_api_key o la variable ANTHROPIC_API_KEY.
+archivo_clave = ""
 modelo = "claude-opus-5-5"
 # low | medium | high: más esfuerzo = análisis más cuidadoso, más lento y más caro.
 esfuerzo = "medium"
